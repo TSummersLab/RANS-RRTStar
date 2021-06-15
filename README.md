@@ -16,6 +16,13 @@ and nonlinear model predictive control (NMPC).
 - [Venkatraman Renganathan - UT Dallas](https://github.com/venkatramanrenganathan)
 - [Dr. Tyler Summers - UT Dallas](https://github.com/tsummers)
 
+# Table of Contents
+- [Cloning the Package](#cloning-the-package)
+- [Dependencies](#dependencies)
+- [Package Organization and Description](#package-organization-and-description)
+- [Using the Package](#using-the-package)
+- [License](#license)
+
 ## Cloning the Package
 The package contains submodules. Please clone with:
 ```
