@@ -17,7 +17,7 @@ import numpy as np
 import os
 
 # RRT Parameters
-NUMSAMPLES = 10 # 1200  # total number of samples
+NUMSAMPLES = 1200  # 1200  # total number of samples
 STEER_TIME = 30  # Maximum Steering Time Horizon
 ENVCONSTANT = 1.1  # Environment Constant for computing search radius
 DT = 0.2  # timestep between controls
@@ -65,7 +65,7 @@ elif ENVNUM == 4:  # three slabs maze
     OBSTACLELIST = [[-2., 2., 6.0, 0.5], [-4.5, -0.5, 7., 0.5], [-3., -3., 7.0, 0.5]]
 
 # Saving Data Parameters
-SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data')  # path to save data
+# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data')  # path to save data
 SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/example')  # path to save data
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/exp')  # path to save data
 
@@ -76,7 +76,7 @@ SIGMAV = np.diag([0., 0., 0.])  # Covariance of sensor noise (we don't have any 
 CROSSCOR = np.diag([0., 0., 0.])  # Cross Correlation between the two noises (none for now)
 
 # DR Risk bounds
-BETA = 0.30 #0.1  # desired risk bound for entire plan failure
+BETA = 0.1  # desired risk bound for entire plan failure
 TMAX = 1000 # maximum number of trajectory points in the RRT* plan (not just RRT* node, but also the intermediate trajectory points)
 num_obs = len(OBSTACLELIST)
 num_constraints = 4*(num_obs + 1) # total number of constraints for rectangular environment and rectangular obstacles
