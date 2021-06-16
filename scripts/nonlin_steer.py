@@ -59,15 +59,15 @@ import matplotlib.patches as mpatches
 import os
 import numpy.random as npr
 
+from utility.path_utility import create_directory
+
 import file_version
 FILEVERSION = file_version.FILEVERSION  # version of this file
 SAVETIME = str(int(time.time()))  # Used in filename when saving data
 
 SAVEPATH = os.path.join(os.path.curdir, 'saved_data')
-try:  # try to create save directory if it doesn't exist
-    os.mkdir(SAVEPATH)
-except:
-    print('Save directory exists')
+create_directory(SAVEPATH)
+
 
 class DrawTrajectory(object):
     def __init__(self, robot_states: list, init_state: np.array, target_state: np.array, rob_diam=0.3,

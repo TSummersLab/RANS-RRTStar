@@ -113,8 +113,8 @@ The available distributions are:
 * The desired low-level controllers specified in the `controller_str_list` list.
 The available controllers are: 
     * `'open-loop'`: open loop control
-    * `'lqr'`: LQR control
-    * `'lqrm'`: LQR with multiplicative terms control
+    * `'lqr'`: LQR 
+    * `'lqrm'`: LQR with multiplicative noise terms
     * `'nmpc'`: nonlinear MPC
 * The number of trials or experiment runs to perform: `num_trials`.
 * To allow for running batches of experiments then collecting all of their data, the number of completed experiments can be specified in `trials_offset`.
@@ -142,11 +142,11 @@ To use the package follow these steps.
 4. Update the `filename` variable in `main` of `get_opt_paths.py` with the copied node list name. 
     * this extract the optimal trajectory and shortens it (in time) and saves six files
 5. Copy the name of the trajectory's inputs (e.g. `OptTraj_short_v2_0_1623778273_inputs` or `OptTraj_v2_0_1623778273_inputs`).
-6. Update the `input_file` variable in `main` of `mote_carlo.py` with the copied input file name.
-7. Update the remaining configuraition variables in `mote_carlo.py`
+6. Update the `input_file` variable in `main` of `monte_carlo.py` with the copied input file name.
+7. Update the remaining configuration variables in `monte_carlo.py`
     * `UNIQUE_EXP_NUM` at the top of the script
     * `input_file`, `noise_dist`, `controller_str_list`, `num_trials`, `trials_offset`, and `run_flag` in `main`
-8. Run the Monte-Carlo script `mote_carlo.py`,
+8. Run the Monte-Carlo script `monte_carlo.py`,
     * this will generate the experiment runs in 
       `monte_carlo/env<UNIQUE_EXP_NUM>/<trials_offset+1>` through
       `monte_carlo/env<UNIQUE_EXP_NUM>/<trials_offset+num_trials>`.
@@ -154,5 +154,5 @@ To use the package follow these steps.
     * statistics about the results are printed.
     
 ## License
-See LICENSE file.
+See [LICENSE](LICENSE) file.
 

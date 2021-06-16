@@ -54,7 +54,6 @@ THE SOFTWARE.
 ###############################################################################
 
 # Import all the required libraries
-import random
 import math
 import csv
 import numpy as np
@@ -79,6 +78,8 @@ import copy
 import os
 import UKF_Estimator as UKF_Estimator
 from scripts.plotting import plot_env
+from utility.path_utility import create_directory
+
 
 np.seterr(divide='ignore')
 ###############################################################################
@@ -87,6 +88,7 @@ np.seterr(divide='ignore')
 # Defining Global Variables (User chosen)
 # See config file for defaults
 import config
+SEED = config.SEED
 NUMSAMPLES = config.NUMSAMPLES  # total number of samples
 STEER_TIME = config.STEER_TIME  # Maximum Steering Time Horizon
 ENVCONSTANT = config.ENVCONSTANT  # Environment Constant for computing search radius
@@ -120,10 +122,7 @@ FILEVERSION = file_version.FILEVERSION  # version of this file
 SAVETIME = str(int(time.time()))  # Used in filename when saving data
 if not RANDNODES:  # if
     NUMSAMPLES = 5
-try:  # try to create save directory if it doesn't exist
-    os.mkdir(SAVEPATH)
-except:
-    print('Save directory exists')
+create_directory(SAVEPATH)
 
 
 # Define the namedlists
@@ -430,17 +429,17 @@ class DR_RRTStar():
                 searchFlag = True
                 while searchFlag:
                     # initialize with a random position in space with orientation = 0
-                    xPt = random.uniform(self.xminrand, self.xmaxrand)
-                    yPt = random.uniform(self.yminrand, self.ymaxrand)
+                    xPt = np.random.uniform(self.xminrand, self.xmaxrand)
+                    yPt = np.random.uniform(self.yminrand, self.ymaxrand)
                     if self.RandFreeChecks(xPt, yPt):
                         break
                 xFreePoints.append(xPt)
                 yFreePoints.append(yPt)
-                thetaFreePoints.append(random.uniform(-np.pi, np.pi))
+                thetaFreePoints.append(np.random.uniform(-np.pi, np.pi))
             for iter in range(points_in_goal):
-                xPt = random.uniform(self.x1mingoal, self.x1maxgoal)
-                yPt = random.uniform(self.y1mingoal, self.y1maxgoal)
-                thetaPt = random.uniform(-np.pi, np.pi)
+                xPt = np.random.uniform(self.x1mingoal, self.x1maxgoal)
+                yPt = np.random.uniform(self.y1mingoal, self.y1maxgoal)
+                thetaPt = np.random.uniform(-np.pi, np.pi)
                 xFreePoints.append(xPt)
                 yFreePoints.append(yPt)
                 thetaFreePoints.append(thetaPt)
@@ -561,7 +560,7 @@ class DR_RRTStar():
 
         # Set the nlp problem settings
         opts_setting = {'ipopt.max_iter': 2000,
-                        'ipopt.print_level': 0,  # 4
+                        'ipopt.print_level': 1,  # 4
                         'print_time': 0,
                         'verbose': 0,  # 1
                         'error_on_fail': 1}
@@ -613,7 +612,7 @@ class DR_RRTStar():
                          ubx=argums['ubx'])
         except:
             # raise Exception('NLP failed')
-            # print('NLP Failed')
+            print('NLP Failed')
             return [], []
 
         # Output series looks like [u0, u1, ..., uN, x0, x1, ..., xN+1]  #####[u0, x0, u1, x1, ...]
@@ -625,7 +624,7 @@ class DR_RRTStar():
 
         return x_casadi, u_casadi
 
-    def nonlinsteer(self, steerParams): # TODO:COME BACK TO THIS LATER TO EDIT
+    def nonlinsteer(self, steerParams):  # TODO:COME BACK TO THIS LATER TO EDIT
         """
         Use created solver from `SetUpSteeringLawParameters` to solve NLP using `solveNLP` then rearrange the results
         """
@@ -912,7 +911,7 @@ class DR_RRTStar():
 
     ###########################################################################
 
-    def ConnectViaMinimumCostPath(self, nearestIndex, nearIndices, randNode, minNode): # TODO: DOUBLE CHECK THAT NO OTHER CHANGES ARE REQUIRED
+    def ConnectViaMinimumCostPath(self, nearestIndex, nearIndices, randNode, minNode):  # TODO: DOUBLE CHECK THAT NO OTHER CHANGES ARE REQUIRED
         """
         Chooses the minimum cost path by selecting the correct parent
         Input Parameters:
@@ -1056,7 +1055,7 @@ class DR_RRTStar():
                 goalIndices.append(self.nodeList.index(node))
 
         # Select a random node from the goal area
-        goalNodeIndex = random.choice(goalIndices)
+        goalNodeIndex = np.random.choice(goalIndices)
 
         return goalNodeIndex
 
@@ -1710,6 +1709,8 @@ def load_and_plot(filename):
 ###############################################################################
 
 def main():
+    npr.seed(SEED)
+
     ######################## Select Desired Dynamics###########################
     # Define the Dynamics Selector Flag - 1:Unicycle, 2:Bicycle, 3:Car-Robot, 4:Quadrotor
     dynamicsSelector = 1  # only unicycle is currently supported
@@ -1761,16 +1762,15 @@ def main():
         pickle.dump(pathNodesList, outfile)
         outfile.close()
 
-def main_from_data():
 
-    filename = 'NodeListData_v1_0_1614552964' # env 3
-    # filename = 'NodeListData_v1_0_1614838308' # env 3
-    # filename = 'NodeListData_v1_0_1614844077' # env 3
-    # filename = 'NodeListData_v1_0_1614844080' # env 1
-    # filename = 'NodeListData_v1_0_1614844083' # env 4
+def main_from_data():
+    filename = 'NodeListData_v1_0_1614552964'  # env 3
+    # filename = 'NodeListData_v1_0_1614838308'  # env 3
+    # filename = 'NodeListData_v1_0_1614844077'  # env 3
+    # filename = 'NodeListData_v1_0_1614844080'  # env 1
+    # filename = 'NodeListData_v1_0_1614844083'  # env 4
     load_and_plot(filename)
 
-###############################################################################
 
 if __name__ == '__main__':
     # Close any existing figure
