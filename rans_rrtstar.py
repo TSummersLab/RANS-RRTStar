@@ -79,6 +79,8 @@ import copy
 import os
 import UKF_Estimator as UKF_Estimator
 from scripts.plotting import plot_env
+from utility.path_utility import create_directory
+
 
 np.seterr(divide='ignore')
 ###############################################################################
@@ -120,10 +122,7 @@ FILEVERSION = file_version.FILEVERSION  # version of this file
 SAVETIME = str(int(time.time()))  # Used in filename when saving data
 if not RANDNODES:  # if
     NUMSAMPLES = 5
-try:  # try to create save directory if it doesn't exist
-    os.mkdir(SAVEPATH)
-except:
-    print('Save directory exists')
+create_directory(SAVEPATH)
 
 
 # Define the namedlists
