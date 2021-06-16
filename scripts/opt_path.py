@@ -75,7 +75,7 @@ OBSTACLELIST = config.OBSTACLELIST
 import file_version
 FILEVERSION = file_version.FILEVERSION  # version of this file
 STEER_TIME = config.STEER_TIME # Maximum Steering Time Horizon
-DT = config.DT # timestep between controls
+DT = config.DT  # timestep between controls
 VELMIN = config.VELMIN
 VELMAX = config.VELMAX
 ANGVELMIN = config.ANGVELMIN
@@ -88,7 +88,7 @@ RLL = config.RLL
 QTLL = config.QTLL
 ROBRAD = config.ROBRAD  # radius of robot (added as padding to environment bounds and the obstacles
 OBSTACLELIST = copy.copy(config.OBSTACLELIST)  # [ox,oy,wd,ht]
-RANDAREA = copy.copy(config.RANDAREA) # [xmin,xmax,ymin,ymax]
+RANDAREA = copy.copy(config.RANDAREA)  # [xmin,xmax,ymin,ymax]
 ALFA = config.ALFA
 DRRRT = config.DRRRT
 
@@ -379,18 +379,20 @@ ALFA = obsalfa
 ###############################################################################
 ###############################################################################
 
+
 def load_pickle_file(filename):
-    '''
+    """
     loads pickle file containing pathNodesList
-    '''
+    """
     with open(filename, 'rb') as f:
         pathNodesList = pickle.load(f)
     return pathNodesList
 
+
 def get_full_opt_traj_and_ctrls(pathNodesList):
-    '''
+    """
     Extract the full state and control sequence from pathNodesList
-    '''
+    """
 
     tree_node_inputs = [] # full optimal trajectory inputs
     tree_node_states = [] # full optimal trajectory states
@@ -460,6 +462,7 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
     print('Number of steps: ', len(np.array(tree_node_states)))
     return [np.array(opt_traj_nodes), np.array(tree_node_states), np.array(tree_node_inputs)]
 
+
 def get_sampled_traj_and_ctrls(pathNodesList):
     '''
     Extract the nodes and control sequence at each node from pathNodesList
@@ -482,20 +485,22 @@ def get_sampled_traj_and_ctrls(pathNodesList):
 
     return [start_state, tree_states, tree_ctrl]
 
+
 def reshape_data(state_trajectory, control_inputs, numstates):
-    '''
+    """
     Reshapes the data of get_sampled_traj_and_ctrls
-    '''
+    """
     traj = np.array(state_trajectory)
     len_traj = len(state_trajectory)
     traj = traj.reshape(len_traj, numstates)
     ctrl = np.array(control_inputs)
     return [traj, ctrl]
 
+
 def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls, new_filename, save_opt_path_plot):
-    '''
+    """
     plots a figure (and saves it) with the extracted optimal trajectory and inputs along the heading direction
-    '''
+    """
 
     # all sampled points
     x_sampled = tree_states[:, 0]
@@ -560,6 +565,7 @@ def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_o
     if save_opt_path_plot:
         plt.savefig(plot_name)
     plt.show()
+
 
 def save_data(full_opt_traj_states, full_opt_traj_ctrls, new_filename):
     state_file = new_filename + "_states"
@@ -884,6 +890,7 @@ def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs, T, ome
     print('Number of steps: ', num_traj_states)
     return new_states, new_controls
 
+
 ###############################################################################
 ######################## FUNCTIONS CALLED BY MAIN #############################
 ###############################################################################
@@ -915,6 +922,7 @@ def get_rrtstar_optimal_trajectory(file_name, output_file_name, save_opt_path=Fa
         plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls, output_file_name, save_opt_path_plot)
 
     return
+
 
 def get_short_rrtstar_optimal_trajectory(file_name, output_file_name, v_max, omega_max, num_states, num_controls,
                                          save_opt_path=False, plot_opt_path=False, save_opt_path_plot=False):
@@ -980,9 +988,12 @@ def opt_and_short_traj(filename, save_path, v_max, omega_max, num_states, num_co
     get_short_rrtstar_optimal_trajectory(filename, new_filename_short, v_max, omega_max, num_states, num_controls,
                                          save_opt_path=save_short_opt_path, plot_opt_path=plot_short_opt_path, save_opt_path_plot=save_short_opt_path_plot)
     return
+
+
 ###############################################################################
 ########################## MAIN() FUNCTION ####################################
 ###############################################################################
+
 
 def main():
     filename = "NodeListData_v1_0_1614552959"  # name of RRT* pickle file to process

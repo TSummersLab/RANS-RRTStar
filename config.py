@@ -17,7 +17,7 @@ import numpy as np
 import os
 
 # RRT Parameters
-NUMSAMPLES = 1200  # 1200  # total number of samples
+NUMSAMPLES = 120  # 1200  # total number of samples
 STEER_TIME = 30  # Maximum Steering Time Horizon
 ENVCONSTANT = 1.1  # Environment Constant for computing search radius
 DT = 0.2  # timestep between controls
@@ -92,3 +92,6 @@ RHL = 100 * np.diag([1.0, 1.0]) # cost quadratic cost matrix for high level plan
 QLL = 100 * np.diag([1.0, 1.0, 0.1])
 RLL = 1 * np.diag([1.0, 1.0])
 QTLL = 10 * QLL
+
+# Random seed
+SEED = 1

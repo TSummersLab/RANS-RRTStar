@@ -22,6 +22,7 @@ Tested platform:
 
 """
 import sys
+
 sys.path.insert(0, 'scripts')
 from scripts.opt_path import opt_and_short_traj
 import os
@@ -29,12 +30,14 @@ import numpy as np
 from rans_rrtstar import DR_RRTStar_Node
 
 import config
+
 SAVEPATH = config.SAVEPATH  # path where RRT* data is located and where this data will be stored
+
 
 #####################################################NodeListData_v1_0_1607441929##########################
 ###############################################################################
 def main():
-    filename = "NodeListData_v2_0_1623815429"  # name of RRT* pickle file to process
+    filename = "NodeListData_v2_0_1623878042"  # name of RRT* pickle file to process
     v_max = 0.5
     omega_max = np.pi
     num_states = 3
@@ -43,5 +46,6 @@ def main():
                        save_opt_path=True, plot_opt_path=True, save_opt_path_plot=True,
                        save_short_opt_path=True, plot_short_opt_path=True, save_short_opt_path_plot=True)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()

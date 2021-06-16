@@ -145,6 +145,7 @@ class nmpc_controller_object(): # place holder for nmpc controller object
     def __init__(self):
         self.name = 'nmpc'
 
+
 def make_controller(controller_str, x_ref_hist, u_ref_hist):
     """
     Creates the controller object and returns the time it took to do so
@@ -203,12 +204,12 @@ def rollout(n, m, T, DT, x0=None, w_hist=None, controller=None, saturate_inputs=
         # Transition the state
         x_old = np.copy(x)
         x = dtime_dynamics(x, u, DT) + w
-        # Check for collision
-        if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
-            collision_flag = True
-            collision_idx = t
-            x_hist[t+1:] = x  # pad out x_hist with the post-collision state
-            break
+        # # Check for collision
+        # if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
+        #     collision_flag = True
+        #     collision_idx = t
+        #     x_hist[t+1:] = x  # pad out x_hist with the post-collision state
+        #     break
         # Record quantities
         x_hist[t+1] = x
         u_hist[t] = u
@@ -402,7 +403,7 @@ def plotter(result_data_dict, common_data):
 if __name__ == "__main__":
     plt.close('all')
 
-    input_file = 'OptTraj_short_v2_0_1623815429_inputs'
+    input_file = 'OptTraj_v2_0_1623878042_inputs'
     noise_dist = 'lap'  # "nrm", "lap", "gum"
     num_trials = 10  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
@@ -410,7 +411,8 @@ if __name__ == "__main__":
 
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
 
-    controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
+    # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
+    controller_str_list = ['open-loop', 'lqr', 'lqrm']
     controller_objects_and_init_time = [make_controller(controller_str, x_ref_hist, u_ref_hist) for controller_str in controller_str_list]
     controller_list = [result[0] for result in controller_objects_and_init_time] # extract controller list
     setup_time_list = [result[1] for result in controller_objects_and_init_time] # extract time to create controller object
