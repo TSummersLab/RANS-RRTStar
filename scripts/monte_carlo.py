@@ -32,7 +32,7 @@ QTLL = config.QTLL
 SAVEPATH = config.SAVEPATH
 
 
-UNIQUE_EXP_NUM = '100000' # 6 digit unqiue number for this experiment setup
+UNIQUE_EXP_NUM = '100000_long' # 6 digit unqiue number for this experiment setup
 MC_FOLDER = os.path.join('..', 'monte_carlo', 'env' + UNIQUE_EXP_NUM)
 
 PROBLEM_DATA_STR = 'problem_data'
