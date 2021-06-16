@@ -143,7 +143,7 @@ To use the package follow these steps.
     * this extract the optimal trajectory and shortens it (in time) and saves six files
 5. Copy the name of the trajectory's inputs (e.g. `OptTraj_short_v2_0_1623778273_inputs` or `OptTraj_v2_0_1623778273_inputs`).
 6. Update the `input_file` variable in `main` of `monte_carlo.py` with the copied input file name.
-7. Update the remaining configuraition variables in `monte_carlo.py`
+7. Update the remaining configuration variables in `monte_carlo.py`
     * `UNIQUE_EXP_NUM` at the top of the script
     * `input_file`, `noise_dist`, `controller_str_list`, `num_trials`, `trials_offset`, and `run_flag` in `main`
 8. Run the Monte-Carlo script `monte_carlo.py`,
