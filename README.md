@@ -98,9 +98,8 @@ The shortened trajectory inputs, states, and image are also saved in the same di
 ### Monte Carlo File
 `scripts/monte_carlo` takes the post-processed data from `get_opt_paths.py` and performs tracking simulations with realized noise.
 The Monte Carlo results are stored in the directory specified by the `MC_FOLDER` variable. 
-Each experiment setup (new environment, new noise distribution, ...), should have a unique `UNIQUE_EXP_NUM`. 
-Preferably, use a six digit number (you can also use a descriptive name). 
-For a that experiment setup, each experiment run (with its own noise realizations) will be stored in a folder named by a 12-digit number (e.g.`000000000001`).
+Each experiment setup (new environment, new noise distribution, ...), has a unique `UNIQUE_EXP_NUM` corresponding to all the data in the inputs file name excluding the words "OptTraj_" and "_inputs". 
+For that experiment setup, each experiment run (with its own noise realizations) will be stored in a folder named by a 12-digit number (e.g.`000000000001`).
 These folders are automatically generated based on the `num_trials` and `trials_offset` (see later).
 
 In `main` of the script, the following variables can be modified.
@@ -144,8 +143,8 @@ To use the package follow these steps.
 5. Copy the name of the trajectory's inputs (e.g. `OptTraj_short_v2_0_1623778273_inputs` or `OptTraj_v2_0_1623778273_inputs`).
 6. Update the `input_file` variable in `main` of `monte_carlo.py` with the copied input file name.
 7. Update the remaining configuration variables in `monte_carlo.py`
-    * `UNIQUE_EXP_NUM` at the top of the script
-    * `input_file`, `noise_dist`, `controller_str_list`, `num_trials`, `trials_offset`, and `run_flag` in `main`
+    * `input_file` at the top of the script
+    * `noise_dist`, `controller_str_list`, `num_trials`, `trials_offset`, and `run_flag` in `main`
 8. Run the Monte-Carlo script `monte_carlo.py`,
     * this will generate the experiment runs in 
       `monte_carlo/env<UNIQUE_EXP_NUM>/<trials_offset+1>` through

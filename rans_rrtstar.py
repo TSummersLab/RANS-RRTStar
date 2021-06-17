@@ -423,7 +423,7 @@ class DR_RRTStar():
         if RANDNODES:
             # get 3% of the sampled points from the goal. The number is bounded within 2 and 10 nodes (2 < 3% < 10)
             # (added at the end of the list of nodes)
-            points_in_goal = min(self.maxIter, min(max(2, int(3 / 100 * self.maxIter)), 10))
+            points_in_goal = 0 #min(self.maxIter, min(max(2, int(3 / 100 * self.maxIter)), 10))
             for iter in range(self.maxIter - points_in_goal):
                 # Sample uniformly around sample space
                 searchFlag = True
@@ -1363,6 +1363,7 @@ class DR_RRTStar():
         t2 = time.time()
         print('Finished Generating Free Points !!! Only took: ', t2 - t1)
 
+        num_steer_fail = 0  # number of nodes that fail to steer
         # Iterate over the maximum allowable number of nodes
         for iter in range(self.maxIter):
             print('Iteration Number', iter, '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
@@ -1370,7 +1371,7 @@ class DR_RRTStar():
 
             # Get a random feasible point in the space as a DR-RRT* Tree node
             randNode = self.GetRandomPoint()
-            # print('Trying randNode: ', randNode.means[-1,1,:], randNode.means[-1,2,:])
+            # print('Trying randNode: ', randNode.means[-1,0,:][0], randNode.means[-1,1,:][0])
 
             # Get index of best DR-RRT* Tree node that is nearest to the random node
             nearestIndex = self.GetNearestListIndex(randNode)
@@ -1388,6 +1389,7 @@ class DR_RRTStar():
             success_steer, minNode = self.SteerAndGetMinNode(from_idx=nearestIndex, to_node=randNode)
 
             if not success_steer:
+                num_steer_fail += 1
                 continue
 
             if RRT:
@@ -1402,6 +1404,9 @@ class DR_RRTStar():
                 # Rewire the tree with newly added minNode
                 self.ReWire(nearIndices, minNode)
 
+        print('~~~~~~~~~~~~~~~~~~ DONE TREE EXPANSION ~~~~~~~~~~~~~~~~~~')
+        print('Number of Nodes Dropped (Saturation Fail): ', len(self.dropped_samples))
+        print('Number of Nodes Failed (Steer Fail): ', num_steer_fail)
         return self.nodeList
 
     ###############################################################################

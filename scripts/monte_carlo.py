@@ -33,9 +33,14 @@ QTLL = config.QTLL
 
 SAVEPATH = config.SAVEPATH
 
+opt_traj_name = "OptTraj_"
+inputs_name = "_inputs"
+input_file = 'OptTraj_short_v2_0_1623888647_inputs'
+UNIQUE_EXP_NUM = input_file.replace(opt_traj_name, "")
+UNIQUE_EXP_NUM = input_file.replace(inputs_name, "")
 
-UNIQUE_EXP_NUM = '100000_long' # 6 digit unqiue number for this experiment setup
-MC_FOLDER = os.path.join('..', 'monte_carlo', 'env' + UNIQUE_EXP_NUM)
+# UNIQUE_EXP_NUM = '100000_long' # 6 digit unqiue number for this experiment setup
+MC_FOLDER = os.path.join('..', 'monte_carlo', UNIQUE_EXP_NUM)
 
 PROBLEM_DATA_STR = 'problem_data'
 RESULT_DATA_STR = 'result_data'
@@ -403,7 +408,6 @@ def plotter(result_data_dict, common_data):
 if __name__ == "__main__":
     plt.close('all')
 
-    input_file = 'OptTraj_v2_0_1623878042_inputs'
     noise_dist = 'lap'  # "nrm", "lap", "gum"
     num_trials = 10  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
@@ -440,7 +444,7 @@ if __name__ == "__main__":
         result_data_dict = aggregate_results(idx_list, my_list)
         fig, ax = plotter(result_data_dict, common_data)
 
-        dirname_out = os.path.join('..', 'monte_carlo', 'path_plots', 'env'+UNIQUE_EXP_NUM)
+        dirname_out = os.path.join('..', 'monte_carlo', 'path_plots', UNIQUE_EXP_NUM)
         filename_out = 'path_plot_' + controller_str + '.png'
         create_directory(dirname_out)
         path_out = os.path.join(dirname_out, filename_out)
