@@ -1828,7 +1828,7 @@ def main_from_data():
 if __name__ == '__main__':
     # Close any existing figure
     plt.close('all')
-    run_rrt = True
+    run_rrt = False
     if run_rrt:
         main()
     else:

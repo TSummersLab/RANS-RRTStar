@@ -67,8 +67,9 @@ elif ENVNUM == 4:  # three slabs maze
 # Saving Data Parameters
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data')  # path to save data
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/example')  # path to save data
-SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/delete_later')  # path to save data
+# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/delete_later')  # path to save data
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/exp')  # path to save data
+SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/fixed_bug')  # path to save data
 
 # Noise parameters
 SIGMAW = np.diag([0.0000005, 0.0000005, 0.0000005])  # Covariance of process noise
