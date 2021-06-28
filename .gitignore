@@ -14,8 +14,12 @@ saved_data/IROS2021/*
 RRTs_grow_times/
 
 # Monte Carlo data
-monte_carlo/
 Monte-Carlo Results/
+monte_carlo/*
+!monte_carlo/OptTraj_short_v2_0_1624832981
+!monte_carlo/path_plots
+monte_carlo/path_plots/*
+!monte_carlo/path_plots/OptTraj_short_v2_0_1624832981
 
 # local backup files
 scripts-backup/
