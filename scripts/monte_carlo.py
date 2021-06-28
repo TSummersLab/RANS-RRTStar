@@ -35,7 +35,8 @@ SAVEPATH = config.SAVEPATH
 
 opt_traj_name = "OptTraj_"
 inputs_name = "_inputs"
-input_file = 'OptTraj_short_v2_0_1623888647_inputs'
+input_file = "OptTraj_short_v2_0_1624832981_inputs"
+# input_file = 'OptTraj_short_v2_0_1623888647_inputs'
 UNIQUE_EXP_NUM = input_file.replace(opt_traj_name, "")
 UNIQUE_EXP_NUM = input_file.replace(inputs_name, "")
 
@@ -411,12 +412,12 @@ if __name__ == "__main__":
     noise_dist = 'lap'  # "nrm", "lap", "gum"
     num_trials = 10  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
-    run_flag = True  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
+    run_flag = False  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
 
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
 
-    # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
-    controller_str_list = ['open-loop', 'lqr', 'lqrm']
+    controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
+    # controller_str_list = ['open-loop', 'lqr', 'lqrm']
     controller_objects_and_init_time = [make_controller(controller_str, x_ref_hist, u_ref_hist) for controller_str in controller_str_list]
     controller_list = [result[0] for result in controller_objects_and_init_time] # extract controller list
     setup_time_list = [result[1] for result in controller_objects_and_init_time] # extract time to create controller object
@@ -453,16 +454,19 @@ if __name__ == "__main__":
         # Metrics
         metric_dict = metric_controllers(result_data_dict, common_data)
 
-    for controller_str, c_metric_dict in metric_dict.items():
-        collisions = c_metric_dict['collisions']
-        print('%s failed %d / %d ' % (controller_str, int(np.sum(collisions)), num_trials))
-    for controller_str, c_metric_dict in metric_dict.items():
-        avg_score = c_metric_dict['score_avg']
-        print('%s score average is %f ' % (controller_str, avg_score))
-    for controller_str, c_metric_dict in metric_dict.items():
-        run_time_avg = c_metric_dict['run_time_avg']
-        print('%s average run time is %f ' % (controller_str, run_time_avg))
-    for controller_str, c_metric_dict in metric_dict.items():
-        if controller_str == 'nmpc':
-            nlp_fail = c_metric_dict['nlp_fail']
-            print('%s nlp failed %d / %d ' % (controller_str, int(np.sum(nlp_fail)), num_trials))
+        print('************************************************')
+        for controller_str, c_metric_dict in metric_dict.items():
+            collisions = c_metric_dict['collisions']
+            print('%s failed %d / %d ' % (controller_str, int(np.sum(collisions)), num_trials))
+        for controller_str, c_metric_dict in metric_dict.items():
+            avg_score = c_metric_dict['score_avg']
+            print('%s score average is %f ' % (controller_str, avg_score))
+        for controller_str, c_metric_dict in metric_dict.items():
+            run_time_avg = c_metric_dict['run_time_avg']
+            print('%s average run time is %f ' % (controller_str, run_time_avg))
+        for controller_str, c_metric_dict in metric_dict.items():
+            if controller_str == 'nmpc':
+                nlp_fail = c_metric_dict['nlp_fail']
+                print('%s nlp failed %d / %d ' % (controller_str, int(np.sum(nlp_fail)), num_trials))
+
+    print('************************************************')

@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """
 Changelog:
+New is v1_1:
+- Fixes bug in heading angle when rewiring the tree
+
 New is v1_0:
 - Run DR-RRT* with unicycle dynamics for steering
 
@@ -130,6 +133,7 @@ Dynamics = namedlist("Dynamics", "numStates numControls")
 StartParams = namedlist("StartParams",
                         "start randArea goal1Area maxIter plotFrequency obstacleList dynamicsData")
 SteerSetParams = namedlist("SteerSetParams", "dt f N solver argums numStates numControls")
+SteerSetParams2 = namedlist("SteerSetParams2", "dt f N solver argums numStates numControls")
 
 ###############################################################################
 ###############################################################################
@@ -570,7 +574,61 @@ class DR_RRTStar():
 
         self.SteerSetParams = SteerSetParams(dt, f, N, solver, argums, numStates, numControls)
 
-    def solveNLP(self, solver, argums, x0, xT, n_states, n_controls, N, T): # TODO: COME BACK TO THIS LATER TO PROPAGATE COVARS
+    def SetUpSteeringLawParametersWithFinalHeading(self):
+        '''
+        Same as SetUpSteeringLawParameters but with all three states enforced at the end instead of only x-y states
+        This is used when rewiring and updating descendants
+        '''
+        # Unwrap the dynamicsData
+        numStates, numControls = self.dynamicsData
+
+        # Get the dynamics specific data
+        dt, N, argums, f = self.GetDynamics()
+
+        # Define state and input cost matrices for solving the NLP
+        Q = QHL
+        R = RHL
+        self.Q = Q
+        self.R = R
+
+        # Casadi SX trajectory variables/parameters for multiple shooting
+        U = SX.sym('U', N, numControls)  # N trajectory controls
+        X = SX.sym('X', N + 1, numStates)  # N+1 trajectory states
+        P = SX.sym('P', numStates + numStates)  # first and last states as independent parameters
+
+        # Concatinate the decision variables (inputs and states)
+        opt_variables = vertcat(reshape(U, -1, 1), reshape(X, -1, 1))
+
+        # Cost function
+        obj = 0  # objective/cost
+        g = []  # equality constraints
+        g.append(X[0, :].T - P[:3])  # add constraint on initial state
+        for i in range(N):
+            # add to the cost the quadratic stage cost: (x-x_des)*Q*(x-x_des)^T + u*R*u^T
+            obj += mtimes([U[i, :], R, U[i, :].T])  # quadratic penalty on control effort
+            # compute the next state from the dynamics
+            x_next_ = f(X[i, :], U[i, :]) * dt + X[i, :]
+            # make the dynamics' next state the same as the i+1 trajectory state (multiple shooting)
+            g.append(X[i + 1, :].T - x_next_.T)
+        g.append(X[N, 0:3].T - P[3:])  # constraint on final state including the heading angle
+
+        # Set the nlp problem
+        nlp_prob = {'f': obj, 'x': opt_variables, 'p': P, 'g': vertcat(*g)}
+
+        # Set the nlp problem settings
+        opts_setting = {'ipopt.max_iter': 2000,
+                        'ipopt.print_level': 0,  # 4
+                        'print_time': 0,
+                        'verbose': 0,  # 1
+                        'error_on_fail': 1}
+
+        # Create a solver that uses IPOPT with above solver settings
+        solver = nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
+
+        self.SteerSetParams2 = SteerSetParams2(dt, f, N, solver, argums, numStates, numControls)
+
+
+    def solveNLP(self, solver, argums, x0, xT, n_states, n_controls, N, T):
         """
         Solves the nonlinear steering problem using the solver from SetUpSteeringLawParameters
         Inputs:
@@ -624,7 +682,7 @@ class DR_RRTStar():
 
         return x_casadi, u_casadi
 
-    def nonlinsteer(self, steerParams):  # TODO:COME BACK TO THIS LATER TO EDIT
+    def nonlinsteer(self, steerParams):
         """
         Use created solver from `SetUpSteeringLawParameters` to solve NLP using `solveNLP` then rearrange the results
         """
@@ -965,7 +1023,7 @@ class DR_RRTStar():
                 continue
 
             # steer from the minNode to the nodes around it with nearIndex and find the trajectory
-            success_steer, xTrajs, sequenceCost = self.SteerAndGenerateTrajAndCost(from_node=minNode, to_idx=nearIndex)
+            success_steer, xTrajs, sequenceCost = self.SteerAndGenerateTrajAndCostWithFinalHeading(from_node=minNode, to_idx=nearIndex)
 
             # If steering fails, move on
             if not success_steer:
@@ -1013,8 +1071,8 @@ class DR_RRTStar():
             if childNode.parent is None or childNode.parent < newNodeIndex:
                 continue
             if childNode.parent == newNodeIndex:
-                success_steer, xTrajs, trajCost = self.SteerAndGenerateTrajAndCost(from_idx=newNodeIndex,
-                                                                                   to_node=childNode)
+                success_steer, xTrajs, trajCost = self.SteerAndGenerateTrajAndCostWithFinalHeading(from_idx=newNodeIndex,
+                                                                                                    to_node=childNode)
                 if not success_steer:
                     continue
 
@@ -1332,10 +1390,70 @@ class DR_RRTStar():
             return False, [], 0
 
         return True, xTrajs, trajCost
+    def SteerAndGenerateTrajAndCostWithFinalHeading(self, from_idx=None, from_node=None, to_idx=None, to_node=None):
+        """
+        Same as SteerAndGenerateTrajAndCost but uses the steering params, and hence the steering law, with the heading enforced to match the set value
+        """
+        # Steer from nearestNode to the randomNode using LQG Control
+        # Returns a list of node points along the trajectory and cost
+        # Box the steer parameters
+        if from_idx == None:  # from index not given
+            from_node_chosen = from_node
+        else:  # from index given
+            from_node_chosen = self.nodeList[from_idx]
+
+        if to_idx == None:  # to index not given
+            to_node_chosen = to_node
+        else:  # to index given
+            to_node_chosen = self.nodeList[to_idx]
+
+        steerParams = {"fromNode": from_node_chosen,
+                       "toNode": to_node_chosen,
+                       "Params": self.SteerSetParams2}
+        steerOutput = self.nonlinsteer(steerParams)
+
+        # Unbox the steer function output
+        meanValues = steerOutput["means"]
+        covarValues = steerOutput["covars"]
+        trajCost = steerOutput["cost"]
+        steerResult = steerOutput["steerResult"]
+        inputCommands = steerOutput["inputCommands"]
+
+        # If the steering law fails, force next iteration with different random sample
+        if steerResult == False:
+            # print('NLP Steering Failed XXXXXXXXX')
+            return False, [], 0
+
+        # Proceed only if the steering law succeeds
+        # Prepare the trajectory
+        xTrajs = self.PrepareTrajectory(meanValues, covarValues, inputCommands)
+
+        # Check for Distributionally Robust Feasibility of the whole trajectory
+        collisionFreeFlag = self.PerformCollisionCheck(xTrajs)
+
+        # If a collision was detected, stop and move on
+        if not collisionFreeFlag:
+            # print('DR Collision Detected @@@@@@@@@')
+            return False, [], 0
+
+        return True, xTrajs, trajCost
 
     def SteerAndGetMinNode(self, from_idx=None, from_node=None, to_idx=None, to_node=None):
         # steer and find the trajectory and trajectory cost
         success_steer, xTrajs, trajCost = self.SteerAndGenerateTrajAndCost(from_idx=from_idx, to_node=to_node)
+
+        # If steering failed, stop
+        if not success_steer:
+            return False, []
+
+        # If steering succeeds
+        # Create minNode with trajectory data & Don't add to the tree for the time being
+        minNode = self.PrepareMinNode(from_idx, xTrajs, trajCost)
+
+        return True, minNode
+    def SteerAndGetMinNodeWithFinalHeading(self, from_idx=None, from_node=None, to_idx=None, to_node=None):
+        # steer and find the trajectory and trajectory cost
+        success_steer, xTrajs, trajCost = self.SteerAndGenerateTrajAndCostWithFinalHeading(from_idx=from_idx, to_node=to_node)
 
         # If steering failed, stop
         if not success_steer:
@@ -1356,6 +1474,7 @@ class DR_RRTStar():
 
         # Prepare And Load The Steering Law Parameters
         self.SetUpSteeringLawParameters()
+        self.SetUpSteeringLawParametersWithFinalHeading()
 
         # Generate maxIter number of free points in search space
         t1 = time.time()
@@ -1475,95 +1594,6 @@ def DefineStartParameters(dynamicsSelector):
     Dynamics = DefineDynamics(dynamicsSelector)
 
     return StartParams(start, randArea, goal1Area, maxIter, plotFrequency, obstacleList, Dynamics)
-
-
-###############################################################################
-
-# def plot_env(ax):  # Copied over from scripts/plotting.py
-#     # Plot the goal
-#     x1mingoal = GOALAREA[0]
-#     x1maxgoal = GOALAREA[1]
-#     y1mingoal = GOALAREA[2]
-#     y1maxgoal = GOALAREA[3]
-#     goalHeight = y1mingoal
-#     xGoal = np.arange(x1mingoal, x1maxgoal, 0.2).tolist()  # [-5.0,-4.8, -4.6, -4.4, -4.2, -4.0]
-#     y1Goal = [goalHeight]
-#
-#     # Shade the area between y1 and line y=y1maxgoal
-#     # ax = plt.axes()
-#     goal_color = '#5fe0b7'
-#     ax.fill_between(xGoal, y1Goal, y1maxgoal,
-#                     facecolor=goal_color,  # The fill color
-#                     color=goal_color)  # The outline color
-#
-#     # Plot the obstacles
-#     color = (0.2, 0.2, 0.2)
-#     color = 'k'
-#     obstacles = [Rectangle(xy=(ox - ROBRAD, oy - ROBRAD),
-#                            width=wd + 2 * ROBRAD,
-#                            height=ht + 2 * ROBRAD,
-#                            angle=0,
-#                            color=color) for (ox, oy, wd, ht) in OBSTACLELIST]
-#     # Plot the environment boundary obstacles
-#     env_xmin, env_xmax, env_ymin, env_ymax = RANDAREA
-#     env_width = env_xmax - env_xmin
-#     env_height = env_ymax - env_ymin
-#     env_thickness = 0.1
-#     env_obstacles = [Rectangle(xy=(env_xmin - env_thickness, env_ymin - env_thickness),
-#                                width=env_thickness + ROBRAD,
-#                                height=env_height + 2 * env_thickness,
-#                                angle=0, color=color),
-#                      Rectangle(xy=(env_xmax - ROBRAD, env_ymin - env_thickness),
-#                                width=env_thickness + ROBRAD,
-#                                height=env_height + 2 * env_thickness,
-#                                angle=0, color=color),
-#                      Rectangle(xy=(env_xmin - env_thickness, env_ymin - env_thickness),
-#                                width=env_width + 2 * env_thickness,
-#                                height=env_thickness + ROBRAD,
-#                                angle=0, color=color),
-#                      Rectangle(xy=(env_xmin - env_thickness, env_ymax - ROBRAD),
-#                                width=env_width + 2 * env_thickness,
-#                                height=env_thickness + ROBRAD,
-#                                angle=0, color=color)
-#                      ]
-#     for obstacle in env_obstacles:
-#         ax.add_artist(obstacle)
-#     for obstacle in obstacles:
-#         ax.add_artist(obstacle)
-#
-#     # Plot the obstacles
-#     obstacles = [Rectangle(xy=(ox, oy),
-#                            width=wd,
-#                            height=ht,
-#                            angle=0,
-#                            color='k') for (ox, oy, wd, ht) in OBSTACLELIST]
-#     # Plot the environment boundary obstacles
-#     env_obstacles = [Rectangle(xy=(env_xmin - env_thickness, env_ymin - env_thickness),
-#                                width=env_thickness,
-#                                height=env_height + 2 * env_thickness,
-#                                angle=0, color='k'),
-#                      Rectangle(xy=(env_xmax, env_ymin - env_thickness),
-#                                width=env_thickness,
-#                                height=env_height + 2 * env_thickness,
-#                                angle=0, color='k'),
-#                      Rectangle(xy=(env_xmin - env_thickness, env_ymin - env_thickness),
-#                                width=env_width + 2 * env_thickness,
-#                                height=env_thickness,
-#                                angle=0, color='k'),
-#                      Rectangle(xy=(env_xmin - env_thickness, env_ymax),
-#                                width=env_width + 2 * env_thickness,
-#                                height=env_thickness,
-#                                angle=0, color='k')
-#                      ]
-#     for obstacle in env_obstacles:
-#         ax.add_artist(obstacle)
-#     for obstacle in obstacles:
-#         ax.add_artist(obstacle)
-#
-#     ax.scatter([env_xmin, env_xmin, env_xmax, env_xmax],
-#                [env_ymin, env_ymax, env_ymin, env_ymax],
-#                color='y', marker='d', s=30, zorder=10000)
-#     return ax
 
 def plot_tree(ax, pathNodesList, filename):
 
@@ -1708,6 +1738,28 @@ def load_and_plot(filename):
 
     plot_saved_data(pathNodesList, filename)
 
+    with open(filename1+'.csv', mode='w') as csv_saver:
+        csv_writer = csv.writer(csv_saver, delimiter=',')
+        for i in range(len(pathNodesList)):
+            line = pathNodesList[i]
+            # print('~~~~~~~~~~~~~~~~~~~~~~')
+            # print(line.means[0])
+            # print(line.inputCommands)
+            # print(line.parent)
+
+            means = line.means
+            inputCommands = line.inputCommands
+            parent = line.parent
+            if parent == None:
+                parent = -1
+
+            data_list = [parent]
+            for m in means:
+                data_list.extend(m.reshape([3]).tolist())
+            for ic in inputCommands:
+                data_list.extend(ic.tolist())
+
+            csv_writer.writerow(data_list)
 
 ###############################################################################
 ########################## MAIN() FUNCTION ####################################
@@ -1769,11 +1821,7 @@ def main():
 
 
 def main_from_data():
-    filename = 'NodeListData_v1_0_1614552964'  # env 3
-    # filename = 'NodeListData_v1_0_1614838308'  # env 3
-    # filename = 'NodeListData_v1_0_1614844077'  # env 3
-    # filename = 'NodeListData_v1_0_1614844080'  # env 1
-    # filename = 'NodeListData_v1_0_1614844083'  # env 4
+    filename = 'NodeListData_v2_0_1624832981'   # env 3 new results
     load_and_plot(filename)
 
 
