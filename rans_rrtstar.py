@@ -1451,19 +1451,6 @@ class DR_RRTStar():
         minNode = self.PrepareMinNode(from_idx, xTrajs, trajCost)
 
         return True, minNode
-    def SteerAndGetMinNodeWithFinalHeading(self, from_idx=None, from_node=None, to_idx=None, to_node=None):
-        # steer and find the trajectory and trajectory cost
-        success_steer, xTrajs, trajCost = self.SteerAndGenerateTrajAndCostWithFinalHeading(from_idx=from_idx, to_node=to_node)
-
-        # If steering failed, stop
-        if not success_steer:
-            return False, []
-
-        # If steering succeeds
-        # Create minNode with trajectory data & Don't add to the tree for the time being
-        minNode = self.PrepareMinNode(from_idx, xTrajs, trajCost)
-
-        return True, minNode
 
     ###########################################################################
 
