@@ -1767,7 +1767,7 @@ def main():
     # Start the timer
     t1 = time.time()
 
-    # Create the DR_RRTStar Class Object by initizalizng the required data
+    # Create the DR_RRTStar Class Object by initializing the required data
     dr_rrtstar = DR_RRTStar(startParam)
 
     # Perform DR_RRTStar Tree Expansion
@@ -1793,8 +1793,8 @@ def main():
 
     ######################## Plot DR-RRTStar Tree #############################
 
-    # plot the Tree
-    dr_rrtstar.DrawGraph(1)
+    # # plot the Tree
+    # dr_rrtstar.DrawGraph(1)
 
     ######################## Save DR-RRTStar Tree Data ########################
 
@@ -1806,16 +1806,20 @@ def main():
         pickle.dump(pathNodesList, outfile)
         outfile.close()
 
+        # plot the Tree
+        load_and_plot(filename)
+
 
 def main_from_data():
-    filename = 'NodeListData_v2_0_1624832981'   # env 3 new results
+    filename = 'NodeListData_v2_0_1627413080'
     load_and_plot(filename)
 
 
 if __name__ == '__main__':
     # Close any existing figure
     plt.close('all')
-    run_rrt = False
+    run_rrt = True
+    # run_rrt = False
     if run_rrt:
         main()
     else:

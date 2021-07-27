@@ -1,0 +1,34 @@
+NUMSAMPLES = 2000  # candidate nodes in tree
+
+-----------------------------------------------
+
+ENVNUM = 1, DRRRT = True
+Number of Nodes Dropped (Saturation Fail):  67
+Number of Nodes Failed (Steer Fail):  832
+Number of Nodes: 1102
+Elapsed Total Time: 2161.3513350486755  seconds
+Time suffix for saved files:  1627415084
+
+
+ENVNUM = 3, DRRRT = True
+Number of Nodes Dropped (Saturation Fail):  359
+Number of Nodes Failed (Steer Fail):  777
+Number of Nodes: 865
+Elapsed Total Time: 1654.6335542201996  seconds
+Time suffix for saved files:  1627413080
+
+
+ENVNUM = 4, DRRRT = True
+Number of Nodes Dropped (Saturation Fail):  583
+Number of Nodes Failed (Steer Fail):  616
+Number of Nodes: 802
+Elapsed Total Time: 1361.5334014892578  seconds
+Time suffix for saved files:  1627417524
+
+
+ENVNUM = 3, DRRRT = False
+Number of Nodes Dropped (Saturation Fail):  76
+Number of Nodes Failed (Steer Fail):  134
+Number of Nodes: 1791
+Elapsed Total Time: 2908.2161436080933  seconds
+Time suffix for saved files:  1627419275

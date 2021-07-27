@@ -17,18 +17,18 @@ import numpy as np
 import os
 
 # RRT Parameters
-NUMSAMPLES = 1000  # 1200  # total number of samples
+NUMSAMPLES = 2000  # 1200  # total number of samples
 STEER_TIME = 30  # Maximum Steering Time Horizon
 ENVCONSTANT = 1.1  # Environment Constant for computing search radius
 DT = 0.2  # timestep between controls
 RRT = False  # True --> RRT, False --> RRT*
-DRRRT = True # True --> apply DR checks, False --> regular RRT
+DRRRT = True  # True --> apply DR checks, False --> regular RRT
 MAXDECENTREWIRE = np.inf
 RANDNODES = True  # false --> only 5 handpicked nodes for debugging
 SATLIM = 1  # saturation limit (random nodes sampled will be cropped down to meet this limit from the nearest node)
 SBSP = 100  # Shrinking Ball Sampling Percentage (% nodes in ball to try to rewire) (100 --> all nodes rewired)
 SBSPAT = 3  # SBSP Activation Threshold (min number of nodes needed to be in the shrinking ball for this to activate)
-SAVEDATA = True # True --> save data, False --> don't save data
+SAVEDATA = True  # True --> save data, False --> don't save data
 
 # Robot Parameters
 ROBRAD = 0.51 / 2  # radius of robot (added as padding to environment bounds and the obstacles)
@@ -38,7 +38,7 @@ ANGVELMIN, ANGVELMAX = -np.pi, np.pi  # min and max angular velocity limits
 
 # Environment Parameters
 ENVNUM = 3
-if ENVNUM == 0: # Opt ctrl course project environment
+if ENVNUM == 0:  # Opt ctrl course project environment
     GOALAREA = [0, 1, -1, 1]  # [xmin,xmax,ymin,ymax] Goal zone
     ROBSTART = [-3., -4.] # robot starting location (x,y)
     RANDAREA = [-4.9, 4.9, -4.9, 4.9] # area sampled: [xmin,xmax,ymin,ymax], [-4.7, 4.7, -4.7, 4.7] good with 0 ROBRAD, limit:[-5,5,-5,5]
@@ -69,7 +69,9 @@ elif ENVNUM == 4:  # three slabs maze
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/example')  # path to save data
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/delete_later')  # path to save data
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/exp')  # path to save data
-SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/fixed_bug')  # path to save data
+# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/fixed_bug')  # path to save data
+SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/final')  # path to save data
+
 
 # Noise parameters
 SIGMAW = np.diag([0.0000005, 0.0000005, 0.0000005])  # Covariance of process noise

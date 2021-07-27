@@ -8,7 +8,7 @@ rrtstar/
 saved_data/*
 !saved_data/IROS2021
 saved_data/IROS2021/*
-!saved_data/IROS2021/fixed_bug
+!saved_data/IROS2021/final
 
 # RRT* growth times
 RRTs_grow_times/
