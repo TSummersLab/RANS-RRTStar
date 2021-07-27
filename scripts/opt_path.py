@@ -725,7 +725,6 @@ def main():
     new_filename_opt = os.path.join(SAVEPATH, new_filename_opt)
     new_filename_short = os.path.join(SAVEPATH, new_filename_short)
 
-    # TODO: there might be an error with the controls that this generates
     get_rrtstar_optimal_trajectory(filename, new_filename_opt, save_opt_path=True, plot_opt_path=True, save_opt_path_plot=True)
 
     # shortened trajectory
