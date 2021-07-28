@@ -412,7 +412,7 @@ if __name__ == "__main__":
     noise_dist = 'lap'  # "nrm", "lap", "gum"
     num_trials = 10  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
-    run_flag = False  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
+    run_flag = True  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
 
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
 

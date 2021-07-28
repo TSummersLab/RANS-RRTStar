@@ -714,7 +714,7 @@ def opt_and_short_traj(filename, save_path, v_max, omega_max, num_states, num_co
 
 
 def main():
-    filename = "NodeListData_v1_0_1614552959"  # name of RRT* pickle file to process
+    filename = "NodeListData_v2_0_1627413080"  # name of RRT* pickle file to process
     nodelist_string = "NodeListData"
     opt_traj_name = "OptTraj"
     shortened_traj_name = "OptTraj_short"
@@ -725,7 +725,6 @@ def main():
     new_filename_opt = os.path.join(SAVEPATH, new_filename_opt)
     new_filename_short = os.path.join(SAVEPATH, new_filename_short)
 
-    # TODO: there might be an error with the controls that this generates
     get_rrtstar_optimal_trajectory(filename, new_filename_opt, save_opt_path=True, plot_opt_path=True, save_opt_path_plot=True)
 
     # shortened trajectory

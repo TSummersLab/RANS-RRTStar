@@ -670,7 +670,7 @@ class DR_RRTStar():
                          ubx=argums['ubx'])
         except:
             # raise Exception('NLP failed')
-            print('NLP Failed')
+            # print('NLP Failed')
             return [], []
 
         # Output series looks like [u0, u1, ..., uN, x0, x1, ..., xN+1]  #####[u0, x0, u1, x1, ...]
@@ -1451,19 +1451,6 @@ class DR_RRTStar():
         minNode = self.PrepareMinNode(from_idx, xTrajs, trajCost)
 
         return True, minNode
-    def SteerAndGetMinNodeWithFinalHeading(self, from_idx=None, from_node=None, to_idx=None, to_node=None):
-        # steer and find the trajectory and trajectory cost
-        success_steer, xTrajs, trajCost = self.SteerAndGenerateTrajAndCostWithFinalHeading(from_idx=from_idx, to_node=to_node)
-
-        # If steering failed, stop
-        if not success_steer:
-            return False, []
-
-        # If steering succeeds
-        # Create minNode with trajectory data & Don't add to the tree for the time being
-        minNode = self.PrepareMinNode(from_idx, xTrajs, trajCost)
-
-        return True, minNode
 
     ###########################################################################
 
@@ -1780,7 +1767,7 @@ def main():
     # Start the timer
     t1 = time.time()
 
-    # Create the DR_RRTStar Class Object by initizalizng the required data
+    # Create the DR_RRTStar Class Object by initializing the required data
     dr_rrtstar = DR_RRTStar(startParam)
 
     # Perform DR_RRTStar Tree Expansion
@@ -1806,8 +1793,8 @@ def main():
 
     ######################## Plot DR-RRTStar Tree #############################
 
-    # plot the Tree
-    dr_rrtstar.DrawGraph(1)
+    # # plot the Tree
+    # dr_rrtstar.DrawGraph(1)
 
     ######################## Save DR-RRTStar Tree Data ########################
 
@@ -1819,9 +1806,12 @@ def main():
         pickle.dump(pathNodesList, outfile)
         outfile.close()
 
+        # plot the Tree
+        load_and_plot(filename)
+
 
 def main_from_data():
-    filename = 'NodeListData_v2_0_1624832981'   # env 3 new results
+    filename = 'NodeListData_v2_0_1627413080'   # env 3 new results
     load_and_plot(filename)
 
 
@@ -1829,6 +1819,7 @@ if __name__ == '__main__':
     # Close any existing figure
     plt.close('all')
     run_rrt = True
+    # run_rrt = False
     if run_rrt:
         main()
     else:

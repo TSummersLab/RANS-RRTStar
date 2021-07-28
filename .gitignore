@@ -1,4 +1,6 @@
 # RRT
+config2.py
+rans_rrtstar2.py
 scripts-backup/rrtstar.py
 rrtstar_lqr/
 rrtstar_nmpc/
@@ -6,14 +8,19 @@ rrtstar/
 
 # Saved data
 saved_data/*
-!saved_data/IROS2021/example
+!saved_data/IROS2021
+saved_data/IROS2021/*
+!saved_data/IROS2021/NodeListData*
+!saved_data/IROS2021/plot_tree*.png
+!saved_data/IROS2021/tree_infos.txt
+saved_data/IROS2021/NodeListData*.csv
 
 # RRT* growth times
 RRTs_grow_times/
 
 # Monte Carlo data
-monte_carlo/
 Monte-Carlo Results/
+monte_carlo/old/*
 
 # local backup files
 scripts-backup/
