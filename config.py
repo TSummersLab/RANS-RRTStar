@@ -19,7 +19,11 @@ import os
 # RRT Parameters
 NUMSAMPLES = 1200  # 1200  # total number of samples
 STEER_TIME = 30  # Maximum Steering Time Horizon
-ENVCONSTANT = 1.1  # 1.1  # Environment Constant for computing search radius; for env=0,1,2,3,4 ENVCONSTANT = 17 --> asymptotic optimality (even lower would also work), but ENVCONSTANT higher --> longer runtime.
+### for env=0,1,2,3,4 ENVCONSTANT = 17 --> asymptotic optimality (even lower would also work);
+### see Theorem 38 in https://arxiv.org/pdf/1105.1186.pdf
+### ("Sampling-based Algorithms for Optimal Motion Planning", S. Karaman, E. Frazzoli)
+### Note: ENVCONSTANT higher --> longer runtime
+ENVCONSTANT = 1.1  # 1.1  # Environment Constant for computing search radius
 DT = 0.2  # timestep between controls
 RRT = False  # True --> RRT, False --> RRT*
 DRRRT = True  # True --> apply DR checks, False --> regular RRT
@@ -66,7 +70,7 @@ elif ENVNUM == 4:  # three slabs maze
 
 # Saving Data Parameters
 # SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data')  # path to save data
-SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/final')  # path to save data
+SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021')  # path to save data
 
 # Noise parameters
 SIGMAW = np.diag([0.0000005, 0.0000005, 0.0000005])  # Covariance of process noise

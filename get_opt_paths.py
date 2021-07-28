@@ -37,7 +37,7 @@ SAVEPATH = config.SAVEPATH  # path where RRT* data is located and where this dat
 #####################################################NodeListData_v1_0_1607441929##########################
 ###############################################################################
 def main():
-    filename = "NodeListData_v2_0_1627413080" # name of RRT* pickle file to process
+    filename = "NodeListData_v2_0_1627413080"  # name of RRT* pickle file to process
     v_max = 0.5
     omega_max = np.pi
     num_states = 3

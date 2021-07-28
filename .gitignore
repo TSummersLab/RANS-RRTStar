@@ -1,6 +1,4 @@
 # RRT
-config2.py
-rans_rrtstar2.py
 scripts-backup/rrtstar.py
 rrtstar_lqr/
 rrtstar_nmpc/
