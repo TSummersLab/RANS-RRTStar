@@ -750,7 +750,6 @@ class DR_RRTStar():
         steeringCost += cost_i
 
         # Find covariances
-        # Find covariances
         if DRRRT:
             covarHist = self.ukfCovars(xHist, uHist, steerParams)
         else:

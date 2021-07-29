@@ -18,7 +18,8 @@ dt = 0.2; % discrete time step
 % False and using the pickle file name in "main_from_data" then running the
 % script.
 % NOTE: this script must be in this matlab directory
-NodeListData_filename = 'NodeListData_v2_0_1624832981.csv'; 
+% NodeListData_filename = 'NodeListData_v2_0_1624832981.csv'; 
+NodeListData_filename = 'NodeListData_v2_0_1627413080.csv'; 
 
 
 %% Load the data

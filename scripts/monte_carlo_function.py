@@ -12,10 +12,13 @@ from utility.matrixmath import mdot
 
 from config import SIGMAW
 
-def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw=SIGMAW, run_flag=False, iros_data=False):
+def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw=SIGMAW, run_flag=False, iros_data=False, short_traj=True):
     opt_traj_name = "OptTraj_"
     inputs_name = "_inputs"
-    input_file = "OptTraj_short_" + version_number + "_" + save_time_prefix + "_inputs"
+    if short_traj:
+        input_file = "OptTraj_short_" + version_number + "_" + save_time_prefix + "_inputs"
+    else:
+        input_file = "OptTraj_" + version_number + "_" + save_time_prefix + "_inputs"
     # result example: input_file = 'OptTraj_short_v2_0_1627413080_inputs'
     UNIQUE_EXP_NUM = input_file.replace(opt_traj_name, "")
     UNIQUE_EXP_NUM = UNIQUE_EXP_NUM.replace(inputs_name, "")
@@ -97,13 +100,14 @@ if __name__ == "__main__":
     save_time_prefix = "1627413080"
     version_number = "v2_0"
     plt.close('all')
-    noise_dist = 'lap'  # "nrm", "lap", "gum"
+    noise_dist = 'none'  # "nrm", "lap", "gum"
     num_trials = 1  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
     run_flag = True  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
     # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']  # controllers to use
-    controller_str_list = ['open-loop', 'lqr']  # controllers to use
+    controller_str_list = ['open-loop']  # controllers to use
     sigmaw = SIGMAW
     iros_data = True
+    short_traj = True
 
-    monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw, run_flag, iros_data)
+    monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw, run_flag, iros_data, short_traj)

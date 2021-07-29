@@ -62,6 +62,10 @@ def load_ref_traj(input_file):
     # load inputs and states
     ref_inputs = load_pickle_file(input_file)
     ref_states = load_pickle_file(states_file)
+
+    from sim_check import check_entire_traj
+    failures = check_entire_traj(ref_states, ref_inputs)
+
     return ref_states, ref_inputs
 
 
@@ -123,6 +127,8 @@ def generate_disturbance_history(common_data, seed=None, dist=None, show_hist=Fa
         b = (6*sigma1)**0.5/np.pi
         l = -0.57721*b
         w_hist = rng.gumbel(loc=l, scale=b, size=[T, 3])  # mean = loc+0.57721*scale, var = pi^2/6 scale^2
+    elif dist == "none":
+        w_hist = 0*rng.multivariate_normal(mean=[0, 0, 0], cov=sigmaw, size=T)
     else:
         raise ValueError('Invalid disturbance generation method!')
 
@@ -144,7 +150,7 @@ def make_problem_data(T, num_trials, offset=0, dist='nrm', sigmaw=SIGMAW, mc_fol
     idx_list = []
     for i in range(num_trials):
         idx = i + offset + 1
-        w_hist = generate_disturbance_history(T, seed=idx, dist=dist, sigmaw=SIGMAW)
+        w_hist = generate_disturbance_history(T, seed=idx, dist=dist, sigmaw=sigmaw)
         problem_data = {'w_hist': w_hist}
         export_problem_data(problem_data, idx, mc_folder)
         idx_list.append(idx)

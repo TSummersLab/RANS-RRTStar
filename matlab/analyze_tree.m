@@ -17,7 +17,7 @@ end
 %% Choose a node to go to from the figure
 
 goal = [0.263694; -2.34915]; % replace this with a node from the plotted figure (use all 6 digits)
-
+goal = [-0.739465; -1.63793];
 %% Find trajectory to which this node belongs to
 
 found_node = false;
