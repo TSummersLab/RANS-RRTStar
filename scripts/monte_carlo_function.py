@@ -106,7 +106,7 @@ if __name__ == "__main__":
     run_flag = True  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
     # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']  # controllers to use
     controller_str_list = ['open-loop']  # controllers to use
-    sigmaw = SIGMAW
+    sigmaw = 0*SIGMAW
     iros_data = True
     short_traj = True
 
