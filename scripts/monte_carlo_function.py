@@ -12,7 +12,7 @@ from utility.matrixmath import mdot
 
 from config import SIGMAW
 
-def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw=SIGMAW, run_flag=False, iros_data=False, short_traj=True):
+def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw=SIGMAW, run_flag=False, iros_data=False, short_traj=True, plot_figs=True):
     opt_traj_name = "OptTraj_"
     inputs_name = "_inputs"
     if short_traj:
@@ -23,7 +23,7 @@ def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trial
     UNIQUE_EXP_NUM = input_file.replace(opt_traj_name, "")
     UNIQUE_EXP_NUM = UNIQUE_EXP_NUM.replace(inputs_name, "")
     # result example: UNIQUE_EXP_NUM = 'short_v2_0_1627413080'
-    UNIQUE_EXP_NUM = UNIQUE_EXP_NUM + "_sigmaw_" + str(sigmaw[0,0])
+    UNIQUE_EXP_NUM = UNIQUE_EXP_NUM + "_sigmaw_" + str(sigmaw[0,0]) + "_" + noise_dist
 
     if iros_data:
         MC_FOLDER = os.path.join('..', 'monte_carlo/IROS2021', UNIQUE_EXP_NUM)
@@ -63,21 +63,25 @@ def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trial
     for controller_str in controller_str_list:
         my_list = [controller_str]
         result_data_dict = aggregate_results(idx_list, my_list, MC_FOLDER)
-        fig, ax = plotter(result_data_dict, common_data)
 
         if iros_data:
             dirname_out = os.path.join('..', 'monte_carlo', 'IROS2021', 'path_plots', UNIQUE_EXP_NUM)
         else:
             dirname_out = os.path.join('..', 'monte_carlo', 'path_plots', UNIQUE_EXP_NUM)
-        filename_out = 'path_plot_' + controller_str + '.png'
-        create_directory(dirname_out)
-        path_out = os.path.join(dirname_out, filename_out)
-        fig.savefig(path_out, dpi=600)
+
+        if plot_figs:
+            fig, ax = plotter(result_data_dict, common_data)
+            filename_out = 'path_plot_' + controller_str + '.png'
+            create_directory(dirname_out)
+            path_out = os.path.join(dirname_out, filename_out)
+            fig.savefig(path_out, dpi=600)
 
         # Metrics
         metric_dict = metric_controllers(result_data_dict, common_data)
 
         print('************************************************')
+        print("SigmaW[0,0] = ", sigmaw[0,0])
+        print("Results saved in: ", dirname_out)
         for controller_str, c_metric_dict in metric_dict.items():
             collisions = c_metric_dict['collisions']
             print('%s failed %d / %d ' % (controller_str, int(np.sum(collisions)), num_trials))
@@ -94,20 +98,21 @@ def monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trial
 
     print('************************************************')
 
-    return
+    return sigmaw
 
 if __name__ == "__main__":
     save_time_prefix = "1627413080"
     version_number = "v2_0"
     plt.close('all')
-    noise_dist = 'none'  # "nrm", "lap", "gum"
+    noise_dist = 'lap'  # "nrm", "lap", "gum"
     num_trials = 1  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
-    run_flag = True  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
+    run_flag = False  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
     # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']  # controllers to use
     controller_str_list = ['open-loop']  # controllers to use
-    sigmaw = 0*SIGMAW
+    sigmaw = 10*SIGMAW
     iros_data = True
     short_traj = True
+    plot_figs = True
 
-    monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw, run_flag, iros_data, short_traj)
+    monte_carlo_function(save_time_prefix, version_number, noise_dist, num_trials, trials_offset, controller_str_list, sigmaw, run_flag, iros_data, short_traj, plot_figs)

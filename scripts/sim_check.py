@@ -27,7 +27,7 @@ def check_entire_traj(x,u,tol=1e-14):
         x_next = x[ii + 1]
         diff = one_step_sim(x_now, u_now, x_next)
         if np.sum(diff) > tol:
-            print(diff)
+            # print(diff)
             failures.append(diff)
             failure_times.append(ii)
     return [failures, failure_times]

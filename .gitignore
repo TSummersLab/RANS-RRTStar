@@ -18,8 +18,9 @@ RRTs_grow_times/
 
 # Monte Carlo data
 Monte-Carlo Results/
-monte_carlo/*
-!monte_carlo/IROS2021/path_plots*
+monte_carlo/
+#monte_carlo/*
+#!monte_carlo/IROS2021/path_plots*
 
 # local backup files
 scripts-backup/
