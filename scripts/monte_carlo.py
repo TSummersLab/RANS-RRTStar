@@ -220,12 +220,12 @@ def rollout(n, m, T, DT, x0=None, w_hist=None, controller=None, saturate_inputs=
         # Transition the state
         x_old = np.copy(x)
         x = dtime_dynamics(x, u, DT) + w
-        # # Check for collision
-        # if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
-        #     collision_flag = True
-        #     collision_idx = t
-        #     x_hist[t+1:] = x  # pad out x_hist with the post-collision state
-        #     break
+        # Check for collision
+        if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
+            collision_flag = True
+            collision_idx = t
+            x_hist[t+1:] = x  # pad out x_hist with the post-collision state
+            break
         # Record quantities
         x_hist[t+1] = x
         u_hist[t] = u

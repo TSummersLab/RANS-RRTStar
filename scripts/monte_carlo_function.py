@@ -107,10 +107,10 @@ if __name__ == "__main__":
     noise_dist = 'lap'  # "nrm", "lap", "gum"
     num_trials = 1  # number of runs to perform
     trials_offset = 0  # indices to skip when saving the runs
-    run_flag = False  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
+    run_flag = True  # Set this true to run new Monte Carlo trials, set to false to pull in saved data
     # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']  # controllers to use
     controller_str_list = ['open-loop']  # controllers to use
-    sigmaw = 10*SIGMAW
+    sigmaw = 10000*SIGMAW
     iros_data = True
     short_traj = True
     plot_figs = True
