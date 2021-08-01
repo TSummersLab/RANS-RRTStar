@@ -943,8 +943,8 @@ def find_dr_padding(alfa, N, obs_edges, horizon_covars):
     alpha = np.array(alfa, float)
     delta = (1-alpha) / alpha
     delta = delta**(0.5)
-    print("##############################")
-    print(delta)
+    # print("##############################")
+    # print(delta)
 
     for n in range(1,N+1):  # skip the first time step (no DR padding there - it is already realized)
         sigma = horizon_covars[n-1]  # this step's covariance

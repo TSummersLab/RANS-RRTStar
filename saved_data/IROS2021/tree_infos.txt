@@ -1,0 +1,50 @@
+IROS results
+
+-----------------------------------------------
+config:
+NUMSAMPLES = 2000  # candidate nodes in tree
+ENVNUM = 1, DRRRT = True, ENVCONSTANT = 1.1
+results:
+Number of Nodes Dropped (Saturation Fail):  67
+Number of Nodes Failed (Steer Fail):  832
+Number of Nodes: 1102
+Elapsed Total Time: 2161.3513350486755  seconds
+Time suffix for saved files:  1627415084
+
+config:
+NUMSAMPLES = 2000  # candidate nodes in tree
+ENVNUM = 3, DRRRT = True, ENVCONSTANT = 1.1
+results:
+Number of Nodes Dropped (Saturation Fail):  359
+Number of Nodes Failed (Steer Fail):  777
+Number of Nodes: 865
+Elapsed Total Time: 1654.6335542201996  seconds
+Time suffix for saved files:  1627413080
+
+config:
+NUMSAMPLES = 2000  # candidate nodes in tree
+ENVNUM = 3, DRRRT = False, ENVCONSTANT = 1.1
+results:
+Number of Nodes Dropped (Saturation Fail):  76
+Number of Nodes Failed (Steer Fail):  134
+Number of Nodes: 1791
+Elapsed Total Time: 2908.2161436080933  seconds
+Time suffix for saved files:  1627419275
+
+config:
+NUMSAMPLES = 2000  # candidate nodes in tree
+ENVNUM = 4, DRRRT = True, ENVCONSTANT = 1.1
+results:
+Number of Nodes Dropped (Saturation Fail):  583
+Number of Nodes Failed (Steer Fail):  616
+Number of Nodes: 802
+Elapsed Total Time: 1361.5334014892578  seconds
+Time suffix for saved files:  1627417524
+
+config:
+NUMSAMPLES = 1200  # candidate nodes in tree
+ENVNUM = 3, DRRRT = True, ENVCONSTANT = 15
+results:
+Number of Nodes: 450
+Elapsed Total Time: around 24700 seconds
+Time suffix for saved files:  1627416820

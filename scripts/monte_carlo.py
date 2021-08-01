@@ -32,13 +32,17 @@ RLL = config.RLL
 QTLL = config.QTLL
 
 SAVEPATH = config.SAVEPATH
+save_time_prefix = "1627413080"
+version_number = "v2_0"
+
 
 opt_traj_name = "OptTraj_"
 inputs_name = "_inputs"
-input_file = "OptTraj_short_v2_0_1624832981_inputs"
-# input_file = 'OptTraj_short_v2_0_1623888647_inputs'
+input_file = "OptTraj_short_" + version_number + "_" + save_time_prefix + "_inputs"
+# result example: input_file = 'OptTraj_short_v2_0_1627413080_inputs'
 UNIQUE_EXP_NUM = input_file.replace(opt_traj_name, "")
-UNIQUE_EXP_NUM = input_file.replace(inputs_name, "")
+UNIQUE_EXP_NUM = UNIQUE_EXP_NUM.replace(inputs_name, "")
+# result example: UNIQUE_EXP_NUM = 'short_v2_0_1627413080'
 
 # UNIQUE_EXP_NUM = '100000_long' # 6 digit unqiue number for this experiment setup
 MC_FOLDER = os.path.join('..', 'monte_carlo', UNIQUE_EXP_NUM)
@@ -58,6 +62,10 @@ def load_ref_traj(input_file):
     # load inputs and states
     ref_inputs = load_pickle_file(input_file)
     ref_states = load_pickle_file(states_file)
+
+    from sim_check import check_entire_traj
+    failures = check_entire_traj(ref_states, ref_inputs)
+
     return ref_states, ref_inputs
 
 
@@ -100,9 +108,9 @@ def export_result_data(problem_data, idx, controller_str, mc_folder=None):
     return
 
 
-def generate_disturbance_history(common_data, seed=None, dist=None, show_hist=False):
+def generate_disturbance_history(common_data, seed=None, dist=None, show_hist=False, sigmaw=SIGMAW):
     rng = npr.default_rng(seed)
-    sigma1 = SIGMAW[0, 0]  # first entry in SigmaW
+    sigma1 = sigmaw[0, 0]  # first entry in SigmaW
     x_ref_hist = common_data['x_ref_hist']
     T = x_ref_hist.shape[0]
 
@@ -110,7 +118,7 @@ def generate_disturbance_history(common_data, seed=None, dist=None, show_hist=Fa
         dist = "nrm"  # "nrm", "lap", "gum"
 
     if dist == "nrm":
-        w_hist = rng.multivariate_normal(mean=[0, 0, 0], cov=SIGMAW, size=T)
+        w_hist = rng.multivariate_normal(mean=[0, 0, 0], cov=sigmaw, size=T)
     elif dist == "lap":
         l = 0
         b = (sigma1 / 2) ** 0.5
@@ -119,6 +127,8 @@ def generate_disturbance_history(common_data, seed=None, dist=None, show_hist=Fa
         b = (6*sigma1)**0.5/np.pi
         l = -0.57721*b
         w_hist = rng.gumbel(loc=l, scale=b, size=[T, 3])  # mean = loc+0.57721*scale, var = pi^2/6 scale^2
+    elif dist == "none":
+        w_hist = 0*rng.multivariate_normal(mean=[0, 0, 0], cov=sigmaw, size=T)
     else:
         raise ValueError('Invalid disturbance generation method!')
 
@@ -136,13 +146,13 @@ def make_idx_list(num_trials, offset=0):
     return idx_list
 
 
-def make_problem_data(T, num_trials, offset=0, dist='nrm'):
+def make_problem_data(T, num_trials, offset=0, dist='nrm', sigmaw=SIGMAW, mc_folder=None):
     idx_list = []
     for i in range(num_trials):
         idx = i + offset + 1
-        w_hist = generate_disturbance_history(T, seed=idx, dist=dist)
+        w_hist = generate_disturbance_history(T, seed=idx, dist=dist, sigmaw=sigmaw)
         problem_data = {'w_hist': w_hist}
-        export_problem_data(problem_data, idx)
+        export_problem_data(problem_data, idx, mc_folder)
         idx_list.append(idx)
     return idx_list
 
@@ -210,12 +220,12 @@ def rollout(n, m, T, DT, x0=None, w_hist=None, controller=None, saturate_inputs=
         # Transition the state
         x_old = np.copy(x)
         x = dtime_dynamics(x, u, DT) + w
-        # # Check for collision
-        # if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
-        #     collision_flag = True
-        #     collision_idx = t
-        #     x_hist[t+1:] = x  # pad out x_hist with the post-collision state
-        #     break
+        # Check for collision
+        if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
+            collision_flag = True
+            collision_idx = t
+            x_hist[t+1:] = x  # pad out x_hist with the post-collision state
+            break
         # Record quantities
         x_hist[t+1] = x
         u_hist[t] = u
@@ -263,19 +273,19 @@ def trial(problem_data, common_data, controller, setup_time):
     return result_data
 
 
-def monte_carlo(idx_list, common_data, controller_list, setup_time_list, verbose=False):
+def monte_carlo(idx_list, common_data, controller_list, setup_time_list, verbose=False, mc_folder=None):
     num_trials = len(idx_list)
     for i, idx in enumerate(idx_list):
         if verbose:
             print('Trial %6d / %d    ' % (i+1, num_trials), end='')
             print('Problem %s    ' % idx2str(idx), end='')
-        problem_data = import_problem_data(idx)
+        problem_data = import_problem_data(idx, mc_folder)
 
         if verbose:
             print('Simulating...', end='')
         for j, controller in enumerate(controller_list):
             result_data = trial(problem_data, common_data, controller, setup_time_list[j])
-            export_result_data(result_data, idx, controller.name)
+            export_result_data(result_data, idx, controller.name, mc_folder)
         if verbose:
             print(' complete.')
     return
@@ -416,7 +426,8 @@ if __name__ == "__main__":
 
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
 
-    controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
+    # controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
+    controller_str_list = ['open-loop', 'lqr']
     # controller_str_list = ['open-loop', 'lqr', 'lqrm']
     controller_objects_and_init_time = [make_controller(controller_str, x_ref_hist, u_ref_hist) for controller_str in controller_str_list]
     controller_list = [result[0] for result in controller_objects_and_init_time] # extract controller list
