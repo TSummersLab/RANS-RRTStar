@@ -388,71 +388,90 @@ def plot_paths(t_hist, x_hist_all_dict, collision_flag_all_dict, x_ref_hist, sho
 def get_collision_counts():
     from monte_carlo import load_ref_traj, make_idx_list, aggregate_results, metric_controllers
 
-    input_file = 'OptTraj_short_v1_0_1614838308_inputs'
+    input_file = 'OptTraj_short_v2_0_1627419275_inputs'
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
     common_data = {'x_ref_hist': x_ref_hist,
                    'u_ref_hist': u_ref_hist}
 
-    sigmaw_vals = [0.0000005,
-                   0.0000010,
-                   0.0000050,
-                   0.0000100,
-                   0.0000500,
-                   0.0001000,
-                   0.0005000,
-                   0.0010000,
-                   0.0015000,
-                   0.0020000,
-                   0.0025000,
-                   0.0030000,
-                   0.0035000,
-                   0.0040000,
-                   0.0045000,
-                   0.0050000,
-                   0.0055000,
-                   0.0060000,
-                   0.0065000,
-                   0.0070000,
-                   0.0075000,
-                   0.0080000,
-                   0.0085000,
-                   0.0090000,
-                   0.0095000,
-                   0.0100000,
-                   0.0500000,
-                   0.1000000]
-    mc_env_strs = ['env000200',
-                   'env000201',
-                   'env000202',
-                   'env000203',
-                   'env000204',
-                   'env000205',
-                   'env000206',
-                   'env000207',
-                   'env000271',
-                   'env000272',
-                   'env000273',
-                   'env000274_timed',
-                   'env000275',
-                   'env000276',
-                   'env000277',
-                   'env000208',
-                   'env000281',
-                   'env000282',
-                   'env000283',
-                   'env000284',
-                   'env000285',
-                   'env000286',
-                   'env000287',
-                   'env000288',
-                   'env000289',
-                   'env000209',
-                   'env000210',
-                   'env000211']
+    sigmaw_vals = []
+
+    sigmaw_vals.append(0.0000005)
+    sigmaw_vals.append(0.000001)
+    sigmaw_vals.append(0.000005)
+    sigmaw_vals.append(0.00001)
+    sigmaw_vals.append(0.00005)
+    sigmaw_vals.append(0.0001)
+    sigmaw_vals.append(0.0005)
+    sigmaw_vals.append(0.001)
+    sigmaw_vals.append(0.0015)
+    sigmaw_vals.append(0.002)
+    sigmaw_vals.append(0.0025)
+    sigmaw_vals.append(0.003)
+    sigmaw_vals.append(0.0035)
+    sigmaw_vals.append(0.004)
+    sigmaw_vals.append(0.0045)
+    sigmaw_vals.append(0.005)
+    sigmaw_vals.append(0.0055)
+    sigmaw_vals.append(0.006)
+    sigmaw_vals.append(0.0065)
+    sigmaw_vals.append(0.007)
+    sigmaw_vals.append(0.0075)
+    sigmaw_vals.append(0.008)
+    sigmaw_vals.append(0.0085)
+    sigmaw_vals.append(0.009)
+    sigmaw_vals.append(0.0095)
+    sigmaw_vals.append(0.01)
+    sigmaw_vals.append(0.02)
+    sigmaw_vals.append(0.03)
+    sigmaw_vals.append(0.04)
+    sigmaw_vals.append(0.05)
+    sigmaw_vals.append(0.06)
+    sigmaw_vals.append(0.07)
+    sigmaw_vals.append(0.08)
+    sigmaw_vals.append(0.09)
+    sigmaw_vals.append(0.1)
+    
+    mc_env_strs = [ 'short_v2_0_1627419275_sigmaw_5e-07_lap',
+                    'short_v2_0_1627419275_sigmaw_1e-06_lap',
+                    'short_v2_0_1627419275_sigmaw_5e-06_lap',
+                    'short_v2_0_1627419275_sigmaw_1e-05_lap',
+                    'short_v2_0_1627419275_sigmaw_5e-05_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0001_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0005_lap',
+                    'short_v2_0_1627419275_sigmaw_0.001_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0015_lap',
+                    'short_v2_0_1627419275_sigmaw_0.002_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0025_lap',
+                    'short_v2_0_1627419275_sigmaw_0.003_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0035_lap',
+                    'short_v2_0_1627419275_sigmaw_0.004_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0045_lap',
+                    'short_v2_0_1627419275_sigmaw_0.005_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0055_lap',
+                    'short_v2_0_1627419275_sigmaw_0.006_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0065_lap',
+                    'short_v2_0_1627419275_sigmaw_0.007_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0075_lap',
+                    'short_v2_0_1627419275_sigmaw_0.008_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0085_lap',
+                    'short_v2_0_1627419275_sigmaw_0.009_lap',
+                    'short_v2_0_1627419275_sigmaw_0.0095_lap',
+                    'short_v2_0_1627419275_sigmaw_0.01_lap',
+                    'short_v2_0_1627419275_sigmaw_0.02_lap',
+                    'short_v2_0_1627419275_sigmaw_0.03_lap',
+                    'short_v2_0_1627419275_sigmaw_0.04_lap',
+                    'short_v2_0_1627419275_sigmaw_0.05_lap',
+                    'short_v2_0_1627419275_sigmaw_0.06_lap',
+                    'short_v2_0_1627419275_sigmaw_0.07_lap',
+                    'short_v2_0_1627419275_sigmaw_0.08_lap',
+                    'short_v2_0_1627419275_sigmaw_0.09_lap',
+                    'short_v2_0_1627419275_sigmaw_0.1_lap'
+                    ]
 
     mc_env_folder = os.path.join('..', 'monte_carlo')
 
     controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
+    # num_trials = 200
     num_trials = 1000
     trials_offset = 0
     idx_list = make_idx_list(num_trials, offset=trials_offset)
@@ -521,15 +540,17 @@ def collision_stat_plot(stat_plot_data, collision_bound):
 def time_stats():
     from monte_carlo import load_ref_traj, make_idx_list, aggregate_results, metric_controllers
 
-    input_file = 'OptTraj_short_v1_0_1614838308_inputs'
+    input_file = 'OptTraj_short_v2_0_1627419275_inputs'
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
     common_data = {'x_ref_hist': x_ref_hist,
                    'u_ref_hist': u_ref_hist}
     mc_env_folder = os.path.join('..', 'monte_carlo')
-    mc_env_str = 'env000220'
+    mc_env_str = 'short_v2_0_1627419275_sigmaw_5e-07_lap'
+    # mc_env_str = 'short_v2_0_1627419275_sigmaw_0.003_lap'
 
     controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
-    num_trials = 120
+    # num_trials = 200
+    num_trials = 1000
     trials_offset = 0
     idx_list = make_idx_list(num_trials, offset=trials_offset)
 
@@ -549,29 +570,36 @@ if __name__ == "__main__":
     plt.close('all')
     from utility.pickle_io import pickle_import, pickle_export
 
-    dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data')
+    # dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data')
+    dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data_NoDR')
+    # dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data_DR')
+
     filename_out = 'stat_plot_data.pkl'
-    # # Aggregate data from scratch
-    # sigmaw_vals, collision_count_dict, num_trials = get_collision_counts()
-    # stat_plot_data = {'sigmaw_vals': sigmaw_vals,
-    #                   'collision_count_dict': collision_count_dict,
-    #                   'num_trials': num_trials}
-    #
-    # pickle_export(dirname_out, filename_out, stat_plot_data)
+    # Aggregate data from scratch
+    agg_from_scratch = False
+    if agg_from_scratch:
+        sigmaw_vals, collision_count_dict, num_trials = get_collision_counts()
+        stat_plot_data = {'sigmaw_vals': sigmaw_vals,
+                          'collision_count_dict': collision_count_dict,
+                          'num_trials': num_trials}
+        pickle_export(dirname_out, filename_out, stat_plot_data)
 
     # Pull in saved agg data
     path_in = os.path.join(dirname_out, filename_out)
     stat_plot_data = pickle_import(path_in)
 
-    fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.10)
+    # fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.10)
+    fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.90)
     filename_out = 'collision_stat_plot.pdf'
     path_out = os.path.join(dirname_out, filename_out)
     fig.savefig(path_out)
 
-    # Zoom the x-axis to the region of interest
-    ax.set_xlim([0.0004, 0.015])
-    filename_out = 'collision_stat_plot_zoom.pdf'
-    path_out = os.path.join(dirname_out, filename_out)
-    fig.savefig(path_out)
+    # Zoom the x-axis to the region of interest (comment for first figure)
+    zoom = False
+    if zoom:
+        ax.set_xlim([0.0004, 0.015])
+        filename_out = 'collision_stat_plot_zoom.pdf'
+        path_out = os.path.join(dirname_out, filename_out)
+        fig.savefig(path_out)
 
     time_stats()

@@ -25,6 +25,14 @@ Github:
 @The-SS
 Contributions: Different steering function, updated steering and rewiring functions, adding features, RANS-RRT* updates
 
+Author:
+Benjamin Gravell
+Email:
+benjamin.gravell@utdallas.edu
+GitHub:
+@BenGravell
+Contributions: NLP solver bugfixes, codebase reorganization
+
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This script performs RRT or RRT* path planning using the unicycle dynamics for steering. Steering is achieved by solving
@@ -100,8 +108,8 @@ GOALAREA = copy.deepcopy(config.GOALAREA)  # [xmin,xmax,ymin,ymax] Goal zone
 ROBSTART = config.ROBSTART  # robot starting location (x,y)
 RANDAREA = copy.deepcopy(config.RANDAREA)  # area sampled: [xmin,xmax,ymin,ymax], [-4.7, 4.7, -4.7, 4.7] good with 0 ROBRAD, limit:[-5,5,-5,5]
 RRT = config.RRT  # True --> RRT, False --> RRT*
-DRRRT = config.DRRRT # True --> apply DR checks, False --> regular RRT
-MAXDECENTREWIRE =  config.MAXDECENTREWIRE  # maximum number of descendents to rewire
+DRRRT = config.DRRRT  # True --> apply DR checks, False --> regular RRT
+MAXDECENTREWIRE = config.MAXDECENTREWIRE  # maximum number of descendents to rewire
 RANDNODES = config.RANDNODES  # false --> only 5 handpicked nodes for debugging
 SATLIM = config.SATLIM  # saturation limit (random nodes sampled will be cropped down to meet this limit from the nearest node)
 ROBRAD = config.ROBRAD  # radius of robot (added as padding to environment bounds and the obstacles
@@ -1748,9 +1756,6 @@ def load_and_plot(filename):
 
             csv_writer.writerow(data_list)
 
-###############################################################################
-########################## MAIN() FUNCTION ####################################
-###############################################################################
 
 def main():
     npr.seed(SEED)
@@ -1791,13 +1796,7 @@ def main():
     print('Elapsed Total Time:', t2 - t1, ' seconds')
     print('Time suffix for saved files: ', SAVETIME)
 
-    ######################## Plot DR-RRTStar Tree #############################
-
-    # # plot the Tree
-    # dr_rrtstar.DrawGraph(1)
-
-    ######################## Save DR-RRTStar Tree Data ########################
-
+    # Save DR-RRTStar tree data
     # Pickle the nodeList data and dump it for further analysis and plot
     if SAVEDATA:
         filename = 'NodeListData_' + FILEVERSION + '_' + SAVETIME
@@ -1806,7 +1805,7 @@ def main():
         pickle.dump(pathNodesList, outfile)
         outfile.close()
 
-        # plot the Tree
+        # Plot DR-RRTStar tree
         load_and_plot(filename)
 
 
@@ -1818,15 +1817,9 @@ def main_from_data():
 if __name__ == '__main__':
     # Close any existing figure
     plt.close('all')
-    run_rrt = True
-    # run_rrt = False
+    # run_rrt = True
+    run_rrt = False
     if run_rrt:
         main()
     else:
         main_from_data()
-
-###############################################################################
-###############################################################################
-###################### END OF THE FILE ########################################
-###############################################################################
-###############################################################################

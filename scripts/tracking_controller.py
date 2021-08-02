@@ -2,7 +2,7 @@
 """
 Changelog:
 New in version 1_0:
-- Create script to run and test functions in `lqr.py`
+- Create script to run and test functions in `lqr_uni.py`
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -18,7 +18,7 @@ Github:
 This script does the following:
 - Provides sample trajectories used for debugging
 - Provide functions to generate filtered noise
-- Runs lqr and lqrm functions from `lqr.py` using a sample trajectory as the high-level trajectory
+- Runs lqr and lqrm functions from `lqr_uni.py` using a sample trajectory as the high-level trajectory
 (edit `use_robust_lqr` to switch between lqr and lqrm)
 
 

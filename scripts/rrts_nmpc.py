@@ -59,7 +59,7 @@ from plotting import animate
 import sys
 sys.path.insert(0, '../unicycle')
 sys.path.insert(0, '../rrtstar')
-from unicycle import lqr, plotting, tracking_controller
+from unicycle import lqr_uni, plotting_uni, tracking_controller_uni
 
 
 import config
@@ -463,7 +463,7 @@ if __name__ == '__main__':
     # Initial state and disturbance
     x0 = np.array(rrt_states[0, :])
     # Generate base disturbance sequence
-    w_base_hist = tracking_controller.generate_disturbance_hist(T, Ts, scale=1)
+    w_base_hist = tracking_controller_uni.generate_disturbance_hist(T, Ts, scale=1)
     plt.plot(t_hist, w_base_hist[:, 0])
     plt.show()
     plt.plot(t_hist, w_base_hist[:, 1])

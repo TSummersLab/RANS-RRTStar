@@ -38,14 +38,14 @@ version_number = "v2_0"
 
 opt_traj_name = "OptTraj_"
 inputs_name = "_inputs"
-input_file = "OptTraj_short_" + version_number + "_" + save_time_prefix + "_inputs"
-# result example: input_file = 'OptTraj_short_v2_0_1627413080_inputs'
+input_file = "OptTraj_short_v2_0_1627413080_inputs"
 UNIQUE_EXP_NUM = input_file.replace(opt_traj_name, "")
-UNIQUE_EXP_NUM = UNIQUE_EXP_NUM.replace(inputs_name, "")
-# result example: UNIQUE_EXP_NUM = 'short_v2_0_1627413080'
+UNIQUE_EXP_NUM = input_file.replace(inputs_name, "")
 
-# UNIQUE_EXP_NUM = '100000_long' # 6 digit unqiue number for this experiment setup
-MC_FOLDER = os.path.join('..', 'monte_carlo', UNIQUE_EXP_NUM)
+# UNIQUE_EXP_NUM = '100000_long' # 6 digit unique number for this experiment setup
+# MC_FOLDER = os.path.join('..', 'monte_carlo', UNIQUE_EXP_NUM)
+# MC_FOLDER = os.path.join('..', 'monte_carlo', 'short_v2_0_1627413080_sigmaw_0.0035_lap')
+MC_FOLDER = os.path.join('..', 'monte_carlo', 'short_v2_0_1627413080_sigmaw_5e-07_lap')
 
 PROBLEM_DATA_STR = 'problem_data'
 RESULT_DATA_STR = 'result_data'
@@ -260,7 +260,7 @@ def trial(problem_data, common_data, controller, setup_time):
     elif controller.name == 'nmpc':
         time_start = time.time()
         nmpc_horizon = 10
-        result_data = drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, T, w=w_hist, drnmpc=False, hnmpc = False)
+        result_data = drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, T, w=w_hist, drnmpc=False, hnmpc=False)
         time_stop = time.time()
     else:
         raise NotImplementedError('Need rollout function for NMPC!')
@@ -318,15 +318,16 @@ def cost_of_trajectory(x_ref_hist, x_hist, u_hist):
         u = u_hist[t]
         dxtot += mdot(dx.T, Q, dx)
         utot += mdot(u.T, R, u)
-    return dxtot + utot
+    return dxtot, utot
 
 
 def score_trajectory(x_ref_hist, u_ref_hist, x_hist, u_hist):
-    # NOTE: x_hist should be collision-free
-    ref_cost = cost_of_trajectory(x_ref_hist, x_ref_hist, u_ref_hist)
-    cost = cost_of_trajectory(x_ref_hist, x_hist, u_hist)
-    score = cost/ref_cost
-    return score
+    # # NOTE: x_hist should be collision-free
+    # ref_cost = cost_of_trajectory(x_ref_hist, x_ref_hist, u_ref_hist)
+    # cost = cost_of_trajectory(x_ref_hist, x_hist, u_hist)
+    # score = cost/ref_cost
+    # return score
+    return cost_of_trajectory(x_ref_hist, x_hist, u_hist)
 
 
 def metric_trials(result_data_list, common_data, skip_scores=False):
@@ -335,8 +336,10 @@ def metric_trials(result_data_list, common_data, skip_scores=False):
     N = len(result_data_list)
     num_collisions = 0
     collisions = np.full(N, False)
-    score_sum = 0.0
-    scores = np.zeros(N)
+    dx_score_sum = 0.0
+    dx_scores = np.zeros(N)
+    u_score_sum = 0.0
+    u_scores = np.zeros(N)
     run_time_sum = 0.0
     nlp_fail = np.full(N, False)
     for i, result_data in enumerate(result_data_list):
@@ -354,26 +357,36 @@ def metric_trials(result_data_list, common_data, skip_scores=False):
         if collision_flag:
             num_collisions += 1
             collisions[i] = True
-            scores[i] = np.inf
+            dx_scores[i] = np.inf
+            u_scores[i] = np.inf
         else:
             if skip_scores:
-                score = -1
+                dx_score, u_score = -1, -1
             else:
-                score = score_trajectory(x_ref_hist, u_ref_hist, x_hist, u_hist)
-            scores[i] = score
-            score_sum += score
+                dx_score, u_score = score_trajectory(x_ref_hist, u_ref_hist, x_hist, u_hist)
+            dx_scores[i] = dx_score
+            dx_score_sum += dx_score
+            u_scores[i] = u_score
+            u_score_sum += u_score
     run_time_avg = run_time_sum/N
-    score_avg = score_sum/N
+    if num_collisions < N:
+        dx_score_avg = dx_score_sum/(N-num_collisions)
+        u_score_avg = u_score_sum/(N-num_collisions)
+    else:
+        dx_score_avg = np.inf
+        u_score_avg = np.inf
     collision_avg = num_collisions/N
-    return scores, score_avg, collisions, collision_avg, run_time_avg, nlp_fail
+    return dx_scores, dx_score_avg, u_scores, u_score_avg, collisions, collision_avg, run_time_avg, nlp_fail
 
 
 def metric_controllers(result_data_dict, common_data, skip_scores=False):
     metric_dict = {}
     for controller_str, result_data_list in result_data_dict.items():
-        scores, score_avg, collisions, collision_avg, run_time_avg, nlp_fail = metric_trials(result_data_list, common_data, skip_scores)
-        metric_dict[controller_str] = {'scores': scores,
-                                       'score_avg': score_avg,
+        dx_scores, dx_score_avg, u_scores, u_score_avg, collisions, collision_avg, run_time_avg, nlp_fail = metric_trials(result_data_list, common_data, skip_scores)
+        metric_dict[controller_str] = {'dx_scores': dx_scores,
+                                       'dx_score_avg': dx_score_avg,
+                                       'u_scores': u_scores,
+                                       'u_score_avg': u_score_avg,
                                        'collisions': collisions,
                                        'collision_avg': collision_avg,
                                        'run_time_avg': run_time_avg,
@@ -430,8 +443,8 @@ if __name__ == "__main__":
     controller_str_list = ['open-loop', 'lqr']
     # controller_str_list = ['open-loop', 'lqr', 'lqrm']
     controller_objects_and_init_time = [make_controller(controller_str, x_ref_hist, u_ref_hist) for controller_str in controller_str_list]
-    controller_list = [result[0] for result in controller_objects_and_init_time] # extract controller list
-    setup_time_list = [result[1] for result in controller_objects_and_init_time] # extract time to create controller object
+    controller_list = [result[0] for result in controller_objects_and_init_time]  # extract controller list
+    setup_time_list = [result[1] for result in controller_objects_and_init_time]  # extract time to create controller object
     # controller_list, time_list = [make_controller(controller_str, x_ref_hist, u_ref_hist) for controller_str in controller_str_list]
     common_data = {'x_ref_hist': x_ref_hist,
                    'u_ref_hist': u_ref_hist}
@@ -470,8 +483,11 @@ if __name__ == "__main__":
             collisions = c_metric_dict['collisions']
             print('%s failed %d / %d ' % (controller_str, int(np.sum(collisions)), num_trials))
         for controller_str, c_metric_dict in metric_dict.items():
-            avg_score = c_metric_dict['score_avg']
-            print('%s score average is %f ' % (controller_str, avg_score))
+            dx_score_avg = c_metric_dict['dx_score_avg']
+            print('%s dx_score average is %f ' % (controller_str, dx_score_avg))
+        for controller_str, c_metric_dict in metric_dict.items():
+            u_score_avg = c_metric_dict['u_score_avg']
+            print('%s u_score average is %f ' % (controller_str, u_score_avg))
         for controller_str, c_metric_dict in metric_dict.items():
             run_time_avg = c_metric_dict['run_time_avg']
             print('%s average run time is %f ' % (controller_str, run_time_avg))

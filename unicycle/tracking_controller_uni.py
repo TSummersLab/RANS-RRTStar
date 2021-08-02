@@ -5,8 +5,8 @@ import numpy.random as npr
 import scipy.linalg as sla
 import scipy.signal as signal
 import matplotlib.pyplot as plt
-from plotting import plot_hist, plot_gain_hist, animate
-from lqr import lqr, lqrm
+from plotting_uni import plot_hist, plot_gain_hist, animate
+from lqr_uni import lqr, lqrm
 from utility.matrixmath import mdot, sympart
 from copy import copy
 
