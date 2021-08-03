@@ -21,30 +21,7 @@ This script does the following:
 - Shorten the trajectory so that each segment between sampled points is given a proportional horizon to its length (both
  in linear and angular distance)
 
-Tested platform:
-- Python 3.6.9 on Ubuntu 18.04 LTS (64 bit)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 """
-
-###############################################################################
-###############################################################################
 
 # Import all the required libraries
 import math
@@ -58,10 +35,12 @@ import os
 sys.path.insert(0, '../')
 from matplotlib.patches import Rectangle
 
-from drrrts_nmpc import SetUpSteeringLawParametersNoColAvoid
 from drrrts_nmpc import find_dr_padding, get_padded_edges
 
 from collision_check import PtObsColFlag, LineObsColFlag
+
+from utility.pickle_io import pickle_import
+
 
 # Global variables
 import config
@@ -72,12 +51,8 @@ OBSTACLELIST = config.OBSTACLELIST
 
 import file_version
 FILEVERSION = file_version.FILEVERSION  # version of this file
-STEER_TIME = config.STEER_TIME # Maximum Steering Time Horizon
-DT = config.DT  # timestep between controls
-VELMIN = config.VELMIN
-VELMAX = config.VELMAX
-ANGVELMIN = config.ANGVELMIN
-ANGVELMAX = config.ANGVELMAX
+from config import DT, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX
+
 SIGMAW = config.SIGMAW
 SIGMAV = config.SIGMAV
 CROSSCOR = config.CROSSCOR
@@ -97,14 +72,7 @@ obsalfa = ALFA[0:-4]
 obsalfa.insert(0, lastalfa)
 ALFA = obsalfa
 
-
-def load_pickle_file(filename):
-    """
-    loads pickle file containing pathNodesList
-    """
-    with open(filename, 'rb') as f:
-        pathNodesList = pickle.load(f)
-    return pathNodesList
+from scripts.dynamics import DYN
 
 
 def get_full_opt_traj_and_ctrls(pathNodesList):
@@ -112,10 +80,9 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
     Extract the full state and control sequence from pathNodesList
     """
 
-    from sim_check import one_step_sim
-    tree_node_inputs = [] # full optimal trajectory inputs
-    tree_node_states = [] # full optimal trajectory states
-    opt_traj_nodes = [] # only has the optimal trajectory using the sampled points
+    tree_node_inputs = []  # full optimal trajectory inputs
+    tree_node_states = []  # full optimal trajectory states
+    opt_traj_nodes = []  # only has the optimal trajectory using the sampled points
     found_node_in_goal = False
 
     if pathNodesList is not None:
@@ -157,7 +124,7 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
             ctrl = [goal_node.inputCommands[i, 0], goal_node.inputCommands[i, 1]]
             ctrl_inputs.append(ctrl)
             pt_2 = [goal_node.means[i+1, 0, :][0], goal_node.means[i+1, 1, :][0], goal_node.means[i+1, 2, :][0]]
-            diff = one_step_sim(pt, ctrl, pt_2)
+            diff = DYN.one_step_sim_diff(pt, ctrl, pt_2)
             if np.sum(diff) > 1e-14:
                 print(diff)
         opt_traj_nodes = [node_pt] + opt_traj_nodes
@@ -187,7 +154,7 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
                 ctrl_inputs.append(ctrl)
                 pt_2 = [parent_node.means[i + 1, 0, :][0], parent_node.means[i + 1, 1, :][0],
                         parent_node.means[i + 1, 2, :][0]]
-                diff = one_step_sim(pt, ctrl, pt_2)
+                diff = DYN.one_step_sim_diff(pt, ctrl, pt_2)
                 if np.sum(diff) > 1e-14:
                     print(diff)
             opt_traj_nodes = [node_pt] + opt_traj_nodes
@@ -197,17 +164,16 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
             idx_of_parent_node = parent_node.parent
     print('Number of steps: ', len(np.array(tree_node_states)))
 
-    from sim_check import check_entire_traj
-    check_entire_traj(tree_node_states, tree_node_inputs)
 
+    DYN.check_entire_traj(tree_node_states, tree_node_inputs)
 
     return [np.array(opt_traj_nodes), np.array(tree_node_states), np.array(tree_node_inputs)]
 
 
 def get_sampled_traj_and_ctrls(pathNodesList):
-    '''
+    """
     Extract the nodes and control sequence at each node from pathNodesList
-    '''
+    """
     start_state = []
     control_inputs = []
     state_trajectory = []
@@ -222,7 +188,7 @@ def get_sampled_traj_and_ctrls(pathNodesList):
             state_trajectory.append(point)
             control_inputs.append(ctrls)
 
-    tree_states, tree_ctrl = reshape_data(state_trajectory, control_inputs, 3) # 3 = num states
+    tree_states, tree_ctrl = reshape_data(state_trajectory, control_inputs, 3)  # 3 = num states
 
     return [start_state, tree_states, tree_ctrl]
 
@@ -238,7 +204,8 @@ def reshape_data(state_trajectory, control_inputs, numstates):
     return [traj, ctrl]
 
 
-def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls, new_filename, save_opt_path_plot):
+def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls,
+              new_filename, save_opt_path_plot, title_str=''):
     """
     plots a figure (and saves it) with the extracted optimal trajectory and inputs along the heading direction
     """
@@ -265,7 +232,7 @@ def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_o
     y1Goal = [goalHeight]
 
     # Shade the area between y1 and line y=y1maxgoal
-    ax = plt.axes()
+    fig, ax = plt.subplots()
     plt.fill_between(xGoal, y1Goal, y1maxgoal,
                      facecolor="#CAB8CB",  # The fill color
                      color='#CAB8CB')  # The outline color
@@ -289,12 +256,12 @@ def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_o
 
     # plot sampled points, selected samples for optimal trajectory, and optimal trajectory
 
-    plt.plot(x_sampled, y_sampled, 'o', color='indianred')
-    plt.plot(x_sampled_opt, y_sampled_opt, 'x', color='black')
-    plt.plot(x, y)
+    ax.plot(x_sampled, y_sampled, 'o', color='indianred')
+    ax.plot(x_sampled_opt, y_sampled_opt, 'x', color='black')
+    ax.plot(x, y)
 
     # plot vehicle heading and velocity input
-    for i, [v,w] in enumerate(full_opt_traj_ctrls):
+    for i, [v, w] in enumerate(full_opt_traj_ctrls):
         # vehicle state
         x_veh = full_opt_traj_states[i, 0]
         y_veh = full_opt_traj_states[i, 1]
@@ -302,9 +269,13 @@ def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_o
         dx = v*math.cos(theta_veh)
         dy = v*math.sin(theta_veh)
         ax.arrow(x_veh, y_veh, dx, dy, head_width=0.05, fc='k', ec='c')
+
+    ax.set_title(title_str)
+
     plot_name = new_filename + '_plot.png'
     if save_opt_path_plot:
         plt.savefig(plot_name)
+
     plt.show()
 
 
@@ -826,11 +797,9 @@ def get_or_create_solver(N, dt, n, m, solvers_list, solvers_horizons, solvers_pa
     return solver, params, solvers_list, solvers_horizons, solvers_params
 
 
+def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs):
+    T, omega_max, v_max, num_states, num_controls = DT, ANGVELMAX, VELMAX, DYN.n, DYN.m
 
-
-
-def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs, T, omega_max, v_max, num_states, num_controls):
-    from sim_check import check_entire_traj, one_step_sim
     short_states = []
     short_ctrls = []
 
@@ -904,11 +873,11 @@ def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs, T, ome
             short_states.append(x_casadi[j + 1])
             short_ctrls.append(ctrl)
 
-        failures = check_entire_traj(x_casadi, u_casadi, 1e-7)
+        failures = DYN.check_entire_traj(x_casadi, u_casadi, 1e-7)
         if failures[0]:
             print("Failed Simulation Check:", failures)
 
-    failures = check_entire_traj(short_states, short_ctrls, 1e-7)
+    failures = DYN.check_entire_traj(short_states, short_ctrls, 1e-7)
     print("Failed Simulation Check:", failures)
 
     num_traj_states = len(short_states)
@@ -1105,7 +1074,7 @@ def get_rrtstar_optimal_trajectory(file_name, output_file_name, save_opt_path=Fa
         save_opt_path_plot: True --> save plot, False --> don't save plot
     """
 
-    pathNodesList = load_pickle_file(file_name)
+    pathNodesList = pickle_import(file_name)
 
     # get RRT* nodes and inputs
     start_state, tree_states, tree_ctrls = get_sampled_traj_and_ctrls(pathNodesList)
@@ -1119,12 +1088,13 @@ def get_rrtstar_optimal_trajectory(file_name, output_file_name, save_opt_path=Fa
 
     # plot data
     if plot_opt_path:
-        plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls, output_file_name, save_opt_path_plot)
+        plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls,
+                  output_file_name, save_opt_path_plot, title_str='Original trajectory')
 
     return
 
 
-def get_short_rrtstar_optimal_trajectory(file_name, output_file_name, v_max, omega_max, num_states, num_controls,
+def get_short_rrtstar_optimal_trajectory(file_name, output_file_name,
                                          save_opt_path=False, plot_opt_path=False, save_opt_path_plot=False):
     """
     Finds the optimal trajectory as returned by RRT* and shortens it (in time)
@@ -1140,7 +1110,7 @@ def get_short_rrtstar_optimal_trajectory(file_name, output_file_name, v_max, ome
         save_opt_path_plot: True --> save plot, False --> don't save plot
     """
 
-    pathNodesList = load_pickle_file(file_name)
+    pathNodesList = pickle_import(file_name)
 
     # get RRT* nodes and inputs
     start_state, tree_states, tree_ctrls = get_sampled_traj_and_ctrls(pathNodesList)
@@ -1149,8 +1119,7 @@ def get_short_rrtstar_optimal_trajectory(file_name, output_file_name, v_max, ome
     sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls = get_full_opt_traj_and_ctrls(pathNodesList)
 
     # shorten trajectory
-    shortened_traj, shortened_ctrls = shorten_traj(sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls,
-                                                   DT, omega_max, v_max, num_states, num_controls)
+    shortened_traj, shortened_ctrls = shorten_traj(sampled_opt_traj_nodes_, full_opt_traj_states, full_opt_traj_ctrls)
 
     # save data
     if save_opt_path:
@@ -1158,14 +1127,15 @@ def get_short_rrtstar_optimal_trajectory(file_name, output_file_name, v_max, ome
 
     # plot data
     if plot_opt_path:
-        plot_data(tree_states, sampled_opt_traj_nodes_, shortened_traj[0:-1][:], shortened_ctrls, output_file_name, save_opt_path_plot)
+        plot_data(tree_states, sampled_opt_traj_nodes_, shortened_traj[0:-1][:], shortened_ctrls,
+                  output_file_name, save_opt_path_plot, title_str='Shortened trajectory')
 
     return
 
 
-def opt_and_short_traj(filename, save_path, v_max, omega_max, num_states, num_controls,
-                       save_opt_path=False, plot_opt_path=False, save_opt_path_plot=False,
-                       save_short_opt_path=False, plot_short_opt_path=False, save_short_opt_path_plot=False):
+def opt_and_short_traj(filename, save_path,
+                       save_opt_path=True, plot_opt_path=True, save_opt_path_plot=True,
+                       save_short_opt_path=True, plot_short_opt_path=True, save_short_opt_path_plot=True):
     """
     Combines both of the above
     Inputs:
@@ -1185,41 +1155,16 @@ def opt_and_short_traj(filename, save_path, v_max, omega_max, num_states, num_co
 
     get_rrtstar_optimal_trajectory(filename, new_filename_opt, save_opt_path=save_opt_path, plot_opt_path=plot_opt_path,
                                    save_opt_path_plot=save_opt_path_plot)
-    get_short_rrtstar_optimal_trajectory(filename, new_filename_short, v_max, omega_max, num_states, num_controls,
+    get_short_rrtstar_optimal_trajectory(filename, new_filename_short,
                                          save_opt_path=save_short_opt_path, plot_opt_path=plot_short_opt_path, save_opt_path_plot=save_short_opt_path_plot)
     return
 
 
-###############################################################################
-########################## MAIN() FUNCTION ####################################
-###############################################################################
-
-
-def main():
-    filename = "NodeListData_v2_0_1627413080"  # name of RRT* pickle file to process
-    nodelist_string = "NodeListData"
-    opt_traj_name = "OptTraj"
-    shortened_traj_name = "OptTraj_short"
-
-    new_filename_opt = filename.replace(nodelist_string, opt_traj_name)
-    new_filename_short = filename.replace(nodelist_string, shortened_traj_name)
-    filename = os.path.join(SAVEPATH, filename)
-    new_filename_opt = os.path.join(SAVEPATH, new_filename_opt)
-    new_filename_short = os.path.join(SAVEPATH, new_filename_short)
-
-    get_rrtstar_optimal_trajectory(filename, new_filename_opt, save_opt_path=True, plot_opt_path=True, save_opt_path_plot=True)
-
-    # shortened trajectory
-    v_max = 0.5
-    omega_max = np.pi
-    num_states = 3
-    num_controls = 2
-    get_short_rrtstar_optimal_trajectory(filename, new_filename_short, v_max, omega_max, num_states, num_controls,
-                                         save_opt_path=True, plot_opt_path=True, save_opt_path_plot=True)
-
-
-###############################################################################
-
 if __name__ == '__main__':
-    main()
+    from filesearch import get_filename
 
+    prefix = 'NodeListData'
+    filename = get_filename(SAVEPATH, tstr='last', prefix=prefix)
+    # filename = prefix + "_v2_0_" + "1627880310"
+
+    opt_and_short_traj(filename, SAVEPATH)

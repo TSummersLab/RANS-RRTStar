@@ -17,67 +17,34 @@ Github:
 
 This script runs the RRT*-generated path, extracted by `opt_path.py` with an nmpc low level controller
 
-Tested platform:
-- Python 3.6.9 on Ubuntu 18.04 LTS (64 bit)
-
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 """
 
-###############################################################################
-###############################################################################
-
-# Import all the required libraries
 import math
 from casadi import *
 import numpy as np
 import numpy.linalg as la
-import numpy.random as npr
 import matplotlib.pyplot as plt
 import time
-import pickle
-# from opt_path import load_pickle_file
-import os
-from plotting import animate
+
 import copy
 
-from matplotlib.patches import Rectangle, Ellipse
-from matplotlib.collections import EllipseCollection
+from matplotlib.patches import Rectangle
 from matplotlib.offsetbox import AnnotationBbox, AuxTransformBox
 
 from collision_check import *
 
 
 import sys
-sys.path.insert(0, '../unicycle')
-sys.path.insert(0, '../rrtstar')
 sys.path.insert(0, '../')
-# from unicycle import lqr, plotting, tracking_controller
-import UKF_Estimator as UKF_Estimator
 
+from scripts import UKF_Estimator as UKF_Estimator
 
 import config
-STEER_TIME = config.STEER_TIME # Maximum Steering Time Horizon
-DT = config.DT # timestep between controls
+STEER_TIME = config.STEER_TIME  # Maximum Steering Time Horizon
+DT = config.DT  # timestep between controls
 SAVEPATH = config.SAVEPATH
-GOALAREA = config.GOALAREA #[xmin,xmax,ymin,ymax]
-RANDAREA = copy.copy(config.RANDAREA) # [xmin,xmax,ymin,ymax]
+GOALAREA = config.GOALAREA  #[xmin,xmax,ymin,ymax]
+RANDAREA = copy.copy(config.RANDAREA)  # [xmin,xmax,ymin,ymax]
 VELMAX = config.VELMAX
 VELMIN = config.VELMIN
 ANGVELMAX = config.ANGVELMAX
@@ -98,6 +65,7 @@ lastalfa = ALFA[-1]
 obsalfa = ALFA[0:-4]
 obsalfa.insert(0, lastalfa)
 ALFA = obsalfa
+
 
 def sim_state(T, x0, u, f):
     f_value = f(x0, u)
@@ -968,13 +936,11 @@ def find_dr_padding(alfa, N, obs_edges, horizon_covars):
 
     return env_pad, obs_pad
 
-###############################################################################
-####################### FUNCTION CALLED BY MAIN() #############################
-###############################################################################
+
 
 #TODO:change this to support different min and max values
-def drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, num_steps, w=[],
-                        save_plot = False,  save_file_name = "", drnmpc = True, hnmpc = True):
+def drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, num_steps, w=None,
+                        save_plot=False,  save_file_name="", drnmpc=True, hnmpc=True):
     """
     runs an nmpc low level controller for the rrt* path
     Inputs:
@@ -1001,7 +967,7 @@ def drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, num_steps, w
     rrt_states = x_ref_hist
     rrt_inputs = u_ref_hist
 
-    if w == []: # no disturbance
+    if w is None:  # no disturbance
         # nmpc with no disturbance
         results_data = nmpc(nmpc_horizon, DT, rrt_states, rrt_inputs, num_steps, n, m, obstaclelist, envbounds, drnmpc, hnmpc=hnmpc)
         pt_obs_collision_detected = results_data["pt_obs_collision_detected"]
@@ -1195,69 +1161,3 @@ def drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, num_steps, w
                    'run_time': run_time,
                    'nlp_failed_flag': nlp_failed_flag}
     return result_data
-
-
-# TODO: main is no longer up to date MUST UPDATE
-# if __name__ == '__main__':
-#     # load file
-#     input_file = "OptTraj_short_v1_0_1607441105_inputs"
-#     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
-#     rrt_states = x_ref_hist
-#     rrt_inputs = u_ref_hist
-#
-#     v_max = VELMAX  # maximum linear velocity (m/s)
-#     omega_max = ANGVELMAX # 0.125 * (2 * np.pi)  # maximum angular velocity (rad/s)
-#     x_max = 5  # maximum state in the horizontal direction
-#     y_max = 5  # maximum state in the vertical direction
-#     theta_max = np.inf  # maximum state in the theta direction
-#     ax_lim = [-6, 6, -6, 6]
-#     robot_w = 0.2 / 2
-#     robot_h = 0.5 / 2
-#     wheel_w = 0.5 / 2
-#     wheel_h = 0.005 / 2
-#     nmpc_horizon = STEER_TIME
-#
-#     # Number of states, inputs
-#     _, n = rrt_states.shape
-#     num_steps, m = rrt_inputs.shape
-#
-#     # generate disturbance
-#     # Time start, end
-#     t0, tf = 0, (num_steps) * DT
-#     # Sampling period
-#     Ts = DT
-#     # Time history
-#     t_hist = np.arange(t0, tf, Ts)
-#     # Number of time steps
-#     T = t_hist.size
-#     # Initial state and disturbance
-#     x0 = np.array(rrt_states[0, :])
-#     # Generate base disturbance sequence
-#     w_base_hist = tracking_controller.generate_disturbance_hist(T, Ts, scale=1)
-#     plt.plot(t_hist, w_base_hist[:, 0])
-#     plt.show()
-#     plt.plot(t_hist, w_base_hist[:, 1])
-#     plt.show()
-#     plt.plot(t_hist, w_base_hist[:, 2])
-#     plt.show()
-#
-#     # simulate with no disturbances
-#     all_states_cl, all_inputs_cl = drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, num_steps, v_max, omega_max, x_max,
-#                                                      y_max, theta_max, w=[],
-#                                                      save_plot=False, save_file_name=input_file)
-#     animate(t_hist, all_states_cl, all_inputs_cl, x_ref_hist, u_ref_hist,
-#             title='NMPC, Closed-loop, reference',
-#             fig_offset=(1000, 400),
-#             axis_limits=ax_lim, robot_w=robot_w, robot_h=robot_h, wheel_w=wheel_w, wheel_h=wheel_h)
-#
-#
-#     # simulate with disturbance
-#     all_states_cl_dist, all_inputs_cl_dist = drrrtstar_with_nmpc(nmpc_horizon, x_ref_hist, u_ref_hist, n, m, num_steps, v_max,
-#                                                                omega_max, x_max, y_max, theta_max, w=w_base_hist,
-#                                                                save_plot=False,
-#                                                                save_file_name=input_file)
-#
-#     animate(t_hist, all_states_cl_dist, all_inputs_cl_dist, x_ref_hist, u_ref_hist,
-#             title='NMPC, Closed-loop, referdisturbedence',
-#             fig_offset=(1000, 400),
-#             axis_limits=ax_lim, robot_w=robot_w, robot_h=robot_h, wheel_w=wheel_w, wheel_h=wheel_h)

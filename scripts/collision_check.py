@@ -43,7 +43,7 @@ THE SOFTWARE.
 """
 
 
-def PtObsColFlag(state, obstaclelist, envbounds, robrad):  # TODO: CHECK LATER
+def PtObsColFlag(state, obstaclelist, envbounds, robrad):
     """
     Performs a collision check between a point and all obstacles in a list.
     Also confirms that the point is inside of a given environment.
@@ -62,7 +62,7 @@ def PtObsColFlag(state, obstaclelist, envbounds, robrad):  # TODO: CHECK LATER
     xmin, xmax, ymin, ymax = envbounds[0], envbounds[1], envbounds[2], envbounds[3]
 
     # check if state is in the environment
-    if not ((xmin + robrad) <= x <= (xmax-robrad) and (ymin+robrad) <= y <= (ymax-robrad)): # state not in environment
+    if not ((xmin + robrad) <= x <= (xmax-robrad) and (ymin+robrad) <= y <= (ymax-robrad)):  # state not in environment
         collision_found = True
         return collision_found
 
@@ -72,7 +72,7 @@ def PtObsColFlag(state, obstaclelist, envbounds, robrad):  # TODO: CHECK LATER
         bottom = oy
         top = oy + ht
 
-        if (left - robrad) <= x <= (right + robrad) and (bottom - robrad) <= y <= (top + robrad):  # stat in an osbtacle
+        if (left - robrad) <= x <= (right + robrad) and (bottom - robrad) <= y <= (top + robrad):  # state in an obstacle
             collision_found = True
             return collision_found
 
@@ -86,7 +86,8 @@ def LineObsColFlag(state1, state2, obstaclelist, robrad):
 
     Inputs:
     state1, state2: two states to check (must have passed the PtObsColFlag check)
-    obstaclelist: list of obstacles arranged as [[ox,oy,wd,ht],[ox,oy,wd,ht], ...] (ox,oy are lower left corner, wd, ht are width and height)
+    obstaclelist: list of obstacles arranged as [[ox,oy,wd,ht],[ox,oy,wd,ht], ...]
+    (ox,oy are lower left corner, wd, ht are width and height)
     robrad: robot radius. if nonzero, it is used to enlarge obstacles and shrink the environment
 
     Outputs:
@@ -138,8 +139,8 @@ def LineObsColFlag(state1, state2, obstaclelist, robrad):
 
 # some examples
 if __name__ == '__main__':
-    obstaclelist = [[0,0,1,1]] # one square lower left: (0,0), top right: (1,1)
-    envbounds = [-2,2,-2,2] # [xmin,xmax,ymin,ymax]
+    obstaclelist = [[0, 0, 1, 1]]  # one square lower left: (0,0), top right: (1,1)
+    envbounds = [-2, 2, -2, 2]  # [xmin,xmax,ymin,ymax]
     robrad = 0.001
 
     s1 = [0.5, 0.5]  # inside obstacle (NOT SAFE)

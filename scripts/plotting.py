@@ -17,27 +17,10 @@ Github:
 
 Plotting and animation functions used elsewhere in the code
 
-Tested platform:
-- TODO: add platform
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 """
+
+import copy
+import os
 
 import numpy as np
 import matplotlib
@@ -46,14 +29,20 @@ from matplotlib.collections import LineCollection, PatchCollection
 from matplotlib.patches import Rectangle, Polygon
 from matplotlib.transforms import Affine2D
 import matplotlib.animation as ani
-import copy
-import os
 
+from utility.pickle_io import pickle_import, pickle_export
+
+from filesearch import get_timestr, get_filename, get_vals_from_dirnames
+
+from config import SAVEPATH, STYLEPATH, RANDAREA, GOALAREA, ROBRAD
 import config
-ROBRAD = config.ROBRAD
 OBSTACLELIST = copy.copy(config.OBSTACLELIST)
-RANDAREA = config.RANDAREA
-GOALAREA = config.GOALAREA
+
+# NUM_TRIALS = 10  # TODO make this programmatic, needs to be saved from monte_carlo
+# CONTROLLER_STR_LIST = ['open-loop', 'lqr', 'lqrm']
+
+NUM_TRIALS = 1000
+CONTROLLER_STR_LIST = ['open-loop', 'lqr', 'lqrm', 'nmpc']
 
 
 def convert_controller_str_nice(old_str):
@@ -212,10 +201,7 @@ def plot_env(ax):
     xGoal = np.arange(x1mingoal, x1maxgoal, 0.2).tolist()  # [-5.0,-4.8, -4.6, -4.4, -4.2, -4.0]
     y1Goal = [goalHeight]
 
-    # Shade the area between y1 and line y=y1maxgoal
-    # ax = plt.axes()
-    # goal_color = '#5fe0b7'
-    goal_color = 'tab:green'
+    # Shade the goal area
     ax.fill_between(xGoal, y1Goal, y1maxgoal,
                     facecolor='#5fe0b7',
                     edgecolor='#154734',
@@ -385,111 +371,39 @@ def plot_paths(t_hist, x_hist_all_dict, collision_flag_all_dict, x_ref_hist, sho
         return fig, ax
 
 
-def get_collision_counts():
+def get_collision_counts(input_file):
     from monte_carlo import load_ref_traj, make_idx_list, aggregate_results, metric_controllers
 
-    input_file = 'OptTraj_short_v2_0_1627419275_inputs'
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
     common_data = {'x_ref_hist': x_ref_hist,
                    'u_ref_hist': u_ref_hist}
 
-    sigmaw_vals = []
+    timestr = get_timestr(filename=input_file)
 
-    sigmaw_vals.append(0.0000005)
-    sigmaw_vals.append(0.000001)
-    sigmaw_vals.append(0.000005)
-    sigmaw_vals.append(0.00001)
-    sigmaw_vals.append(0.00005)
-    sigmaw_vals.append(0.0001)
-    sigmaw_vals.append(0.0005)
-    sigmaw_vals.append(0.001)
-    sigmaw_vals.append(0.0015)
-    sigmaw_vals.append(0.002)
-    sigmaw_vals.append(0.0025)
-    sigmaw_vals.append(0.003)
-    sigmaw_vals.append(0.0035)
-    sigmaw_vals.append(0.004)
-    sigmaw_vals.append(0.0045)
-    sigmaw_vals.append(0.005)
-    sigmaw_vals.append(0.0055)
-    sigmaw_vals.append(0.006)
-    sigmaw_vals.append(0.0065)
-    sigmaw_vals.append(0.007)
-    sigmaw_vals.append(0.0075)
-    sigmaw_vals.append(0.008)
-    sigmaw_vals.append(0.0085)
-    sigmaw_vals.append(0.009)
-    sigmaw_vals.append(0.0095)
-    sigmaw_vals.append(0.01)
-    sigmaw_vals.append(0.02)
-    sigmaw_vals.append(0.03)
-    sigmaw_vals.append(0.04)
-    sigmaw_vals.append(0.05)
-    sigmaw_vals.append(0.06)
-    sigmaw_vals.append(0.07)
-    sigmaw_vals.append(0.08)
-    sigmaw_vals.append(0.09)
-    sigmaw_vals.append(0.1)
-    
-    mc_env_strs = [ 'short_v2_0_1627419275_sigmaw_5e-07_lap',
-                    'short_v2_0_1627419275_sigmaw_1e-06_lap',
-                    'short_v2_0_1627419275_sigmaw_5e-06_lap',
-                    'short_v2_0_1627419275_sigmaw_1e-05_lap',
-                    'short_v2_0_1627419275_sigmaw_5e-05_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0001_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0005_lap',
-                    'short_v2_0_1627419275_sigmaw_0.001_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0015_lap',
-                    'short_v2_0_1627419275_sigmaw_0.002_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0025_lap',
-                    'short_v2_0_1627419275_sigmaw_0.003_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0035_lap',
-                    'short_v2_0_1627419275_sigmaw_0.004_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0045_lap',
-                    'short_v2_0_1627419275_sigmaw_0.005_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0055_lap',
-                    'short_v2_0_1627419275_sigmaw_0.006_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0065_lap',
-                    'short_v2_0_1627419275_sigmaw_0.007_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0075_lap',
-                    'short_v2_0_1627419275_sigmaw_0.008_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0085_lap',
-                    'short_v2_0_1627419275_sigmaw_0.009_lap',
-                    'short_v2_0_1627419275_sigmaw_0.0095_lap',
-                    'short_v2_0_1627419275_sigmaw_0.01_lap',
-                    'short_v2_0_1627419275_sigmaw_0.02_lap',
-                    'short_v2_0_1627419275_sigmaw_0.03_lap',
-                    'short_v2_0_1627419275_sigmaw_0.04_lap',
-                    'short_v2_0_1627419275_sigmaw_0.05_lap',
-                    'short_v2_0_1627419275_sigmaw_0.06_lap',
-                    'short_v2_0_1627419275_sigmaw_0.07_lap',
-                    'short_v2_0_1627419275_sigmaw_0.08_lap',
-                    'short_v2_0_1627419275_sigmaw_0.09_lap',
-                    'short_v2_0_1627419275_sigmaw_0.1_lap'
-                    ]
+    mc_env_folder = os.path.join(SAVEPATH, 'monte_carlo')
+    sigmaw_strs, sigmaw_vals = get_vals_from_dirnames(mc_env_folder, timestr, pos=-2)
 
-    mc_env_folder = os.path.join('..', 'monte_carlo')
+    mc_env_strs = ['short_v2_0_' + timestr + '_sigmaw_' + sigmaw_str + '_lap' for sigmaw_str in sigmaw_strs]
 
-    controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
-    # num_trials = 200
-    num_trials = 1000
+    mc_env_folder = os.path.join(SAVEPATH, 'monte_carlo')
+
     trials_offset = 0
-    idx_list = make_idx_list(num_trials, offset=trials_offset)
+    idx_list = make_idx_list(NUM_TRIALS, offset=trials_offset)
 
     collision_count_dict = {}
-    for controller_str in controller_str_list:
+    for controller_str in CONTROLLER_STR_LIST:
         collision_count_dict[controller_str] = []
 
     for mc_env_str in mc_env_strs:
         mc_folder = os.path.join(mc_env_folder, mc_env_str)
-        result_data_dict = aggregate_results(idx_list, controller_str_list, mc_folder)
+        result_data_dict = aggregate_results(idx_list, CONTROLLER_STR_LIST, mc_folder)
 
         # Metrics
         metric_dict = metric_controllers(result_data_dict, common_data, skip_scores=True)
-        for controller_str in controller_str_list:
+        for controller_str in CONTROLLER_STR_LIST:
             count = np.sum(metric_dict[controller_str]['collisions'])
             collision_count_dict[controller_str].append(count)
-    return sigmaw_vals, collision_count_dict, num_trials
+    return sigmaw_vals, collision_count_dict, NUM_TRIALS
 
 
 def collision_stat_plot(stat_plot_data, collision_bound):
@@ -497,7 +411,7 @@ def collision_stat_plot(stat_plot_data, collision_bound):
     collision_count_dict = stat_plot_data['collision_count_dict']
     num_trials = stat_plot_data['num_trials']
 
-    plt.style.use('conlab.mplstyle')
+    plt.style.use(STYLEPATH)
     fig, ax = plt.subplots(figsize=(7, 4))
     marker_dict = {'open-loop': 's',
                    'lqr': '^',
@@ -518,67 +432,65 @@ def collision_stat_plot(stat_plot_data, collision_bound):
     # Print stats
     for controller_str, collision_count_vals in collision_count_dict.items():
         yb = collision_bound*num_trials
-        idx = np.max(np.where(np.array(collision_count_vals) < yb))
-        # Conservative values
-        print('%12s    %f' % (controller_str, sigmaw_vals[idx]))
-
-    print('')
-    for controller_str, collision_count_vals in collision_count_dict.items():
-        yb = collision_bound * num_trials
-        idx = np.max(np.where(np.array(collision_count_vals) < yb))
-        # Interpolated values
-        x1 = sigmaw_vals[idx]
-        x2 = sigmaw_vals[idx+1]
-        y1 = collision_count_vals[idx]
-        y2 = collision_count_vals[idx+1]
-        xb = x1 + ((yb-y1)/(y2-y1))*(x2-x1)
-        print('%12s    %f' % (controller_str, xb))
+        if np.any(np.array(collision_count_vals) < yb):
+            idx = np.max(np.where(np.array(collision_count_vals) < yb))
+            # Conservative values
+            print('%12s    %f' % (controller_str, sigmaw_vals[idx]))
+            # Interpolated values
+            x1 = sigmaw_vals[idx]
+            x2 = sigmaw_vals[idx+1]
+            y1 = collision_count_vals[idx]
+            y2 = collision_count_vals[idx+1]
+            xb = x1 + ((yb-y1)/(y2-y1))*(x2-x1)
+            print('%12s    %f' % (controller_str, xb))
+        else:
+            pass
 
     return fig, ax
 
 
-def time_stats():
+def time_stats(input_file):
     from monte_carlo import load_ref_traj, make_idx_list, aggregate_results, metric_controllers
 
-    input_file = 'OptTraj_short_v2_0_1627419275_inputs'
     x_ref_hist, u_ref_hist = load_ref_traj(input_file)
     common_data = {'x_ref_hist': x_ref_hist,
                    'u_ref_hist': u_ref_hist}
-    mc_env_folder = os.path.join('..', 'monte_carlo')
+    mc_env_folder = os.path.join(SAVEPATH, 'monte_carlo')
     mc_env_str = 'short_v2_0_1627419275_sigmaw_5e-07_lap'
     # mc_env_str = 'short_v2_0_1627419275_sigmaw_0.003_lap'
 
-    controller_str_list = ['open-loop', 'lqr', 'lqrm', 'nmpc']
-    # num_trials = 200
-    num_trials = 1000
+
     trials_offset = 0
-    idx_list = make_idx_list(num_trials, offset=trials_offset)
+    idx_list = make_idx_list(NUM_TRIALS, offset=trials_offset)
 
     mc_folder = os.path.join(mc_env_folder, mc_env_str)
-    result_data_dict = aggregate_results(idx_list, controller_str_list, mc_folder)
+    result_data_dict = aggregate_results(idx_list, CONTROLLER_STR_LIST, mc_folder)
 
     # Metrics
     metric_dict = metric_controllers(result_data_dict, common_data, skip_scores=True)
 
-    for controller_str in controller_str_list:
+    for controller_str in CONTROLLER_STR_LIST:
         t = metric_dict[controller_str]['run_time_avg']
         print('%s    %f' % (controller_str, t))
 
 
-if __name__ == "__main__":
-    # This code block does the stat plot & timing metrics
-    plt.close('all')
-    from utility.pickle_io import pickle_import, pickle_export
-
-    # dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data')
-    dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data_NoDR')
-    # dirname_out = os.path.join('..', 'monte_carlo', 'stat_plot_agg_data_DR')
-
+def main(timestr=None, short_traj=True, agg_from_scratch=True, zoom=False):
+    dirname_out = os.path.join(SAVEPATH, 'monte_carlo', 'stat_plot_agg_data')
     filename_out = 'stat_plot_data.pkl'
+
+    if timestr is None:
+        timestr = get_timestr(SAVEPATH, method='last')
+    opt_traj_name = "OptTraj_"
+    inputs_name = "_inputs"
+    version_number = 'v2_0'
+    if short_traj:
+        input_file = opt_traj_name + "short_" + version_number + "_" + timestr + inputs_name
+    else:
+        input_file = opt_traj_name + version_number + "_" + timestr + inputs_name
+
     # Aggregate data from scratch
-    agg_from_scratch = False
     if agg_from_scratch:
-        sigmaw_vals, collision_count_dict, num_trials = get_collision_counts()
+        sigmaw_vals, collision_count_dict, num_trials = get_collision_counts(input_file)
         stat_plot_data = {'sigmaw_vals': sigmaw_vals,
                           'collision_count_dict': collision_count_dict,
                           'num_trials': num_trials}
@@ -588,18 +500,25 @@ if __name__ == "__main__":
     path_in = os.path.join(dirname_out, filename_out)
     stat_plot_data = pickle_import(path_in)
 
-    # fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.10)
-    fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.90)
-    filename_out = 'collision_stat_plot.pdf'
-    path_out = os.path.join(dirname_out, filename_out)
-    fig.savefig(path_out)
+    fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.10)
+    # fig, ax = collision_stat_plot(stat_plot_data, collision_bound=0.90)
+
+    for ext in ['.pdf', '.png']:
+        filename_out = 'collision_stat_plot' + ext
+        path_out = os.path.join(dirname_out, filename_out)
+        fig.savefig(path_out, dpi=300)
 
     # Zoom the x-axis to the region of interest (comment for first figure)
-    zoom = False
     if zoom:
         ax.set_xlim([0.0004, 0.015])
-        filename_out = 'collision_stat_plot_zoom.pdf'
-        path_out = os.path.join(dirname_out, filename_out)
-        fig.savefig(path_out)
+        for ext in ['.pdf', '.png']:
+            filename_out = 'collision_stat_plot_zoom' + ext
+            path_out = os.path.join(dirname_out, filename_out)
+            fig.savefig(path_out, dpi=300)
 
-    time_stats()
+    time_stats(input_file)
+
+
+if __name__ == "__main__":
+    plt.close('all')
+    main(timestr='1627419275', agg_from_scratch=False, zoom=True)

@@ -16,8 +16,21 @@ Github:
 import numpy as np
 import os
 
+# Absolute path to this config file
+CONFIGPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
+
+# Saving Data Parameters
+SAVEDATA = True  # True --> save data, False --> don't save data
+
+# SAVEPATH = os.path.join(CONFIGPATH, 'saved_data')  # path to save data
+SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'IROS2021')  # path to save data
+# SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'Example')  # path to save data
+
+# Path to the style sheet for matplotlib
+STYLEPATH = os.path.join(CONFIGPATH, 'utility', 'conlab.mplstyle')
+
 # RRT Parameters
-NUMSAMPLES = 2000  # 1200  # total number of samples
+NUMSAMPLES = 50  # 1200  # total number of samples
 STEER_TIME = 30  # Maximum Steering Time Horizon
 ENVCONSTANT = 1.1  # Environment Constant for computing search radius
 DT = 0.2  # timestep between controls
@@ -28,7 +41,6 @@ RANDNODES = True  # false --> only 5 handpicked nodes for debugging
 SATLIM = 1  # saturation limit (random nodes sampled will be cropped down to meet this limit from the nearest node)
 SBSP = 100  # Shrinking Ball Sampling Percentage (% nodes in ball to try to rewire) (100 --> all nodes rewired)
 SBSPAT = 3  # SBSP Activation Threshold (min number of nodes needed to be in the shrinking ball for this to activate)
-SAVEDATA = True  # True --> save data, False --> don't save data
 
 # Robot Parameters
 ROBRAD = 0.51 / 2  # radius of robot (added as padding to environment bounds and the obstacles)
@@ -37,45 +49,69 @@ VELMIN, VELMAX = -0.5, 0.5  # min and max linear velocity limits
 ANGVELMIN, ANGVELMAX = -np.pi, np.pi  # min and max angular velocity limits
 
 # Environment Parameters
-ENVNUM = 3
+ENVNUM = 9
 if ENVNUM == 0:  # Opt ctrl course project environment
+    ENVAREA = [-5, 5, -5, 5]  # [xmin,xmax,ymin,ymax]
     GOALAREA = [0, 1, -1, 1]  # [xmin,xmax,ymin,ymax] Goal zone
-    ROBSTART = [-3., -4.] # robot starting location (x,y)
+    ROBSTART = [-3., -4.]  # robot starting location (x,y)
     RANDAREA = [-4.9, 4.9, -4.9, 4.9] # area sampled: [xmin,xmax,ymin,ymax], [-4.7, 4.7, -4.7, 4.7] good with 0 ROBRAD, limit:[-5,5,-5,5]
-    OBSTACLELIST = [[-4, 0, 3, 1], [-2, -2, 1, 2], [-1, -2, 3, 0.5], [2, -2, 1.5, 5], [-4, 2, 4.5, 1]] # [ox,oy,wd,ht]
+    OBSTACLELIST = [[-4, 0, 3, 1],
+                    [-2, -2, 1, 2],
+                    [-1, -2, 3, 0.5],
+                    [2, -2, 1.5, 5],
+                    [-4, 2, 4.5, 1]] # [ox,oy,wd,ht]
 elif ENVNUM == 1:  # tea cup
+    ENVAREA = [-5, 5, -5, 5]  # [xmin,xmax,ymin,ymax]
     GOALAREA = [0, 1, -1, 1]  # [xmin,xmax,ymin,ymax] Goal zone
-    ROBSTART = [-3., -4.] # robot starting location (x,y)
+    ROBSTART = [-3., -4.]  # robot starting location (x,y)
     RANDAREA = [-4.9, 4.9, -4.9, 4.9] # area sampled: [xmin,xmax,ymin,ymax], [-4.7, 4.7, -4.7, 4.7] good with 0 ROBRAD, limit:[-5,5,-5,5]
-    OBSTACLELIST = [[-3., 0, 2.5, 0.5], [-1.5, -2, 0.5, 2], [-1+3*ROBRAD, -2, 2, 0.5], [2, -2, 0.5, 4.5], [-4, 2.0, 3.5, 0.75]]
+    OBSTACLELIST = [[-3., 0, 2.5, 0.5],
+                    [-1.5, -2, 0.5, 2],
+                    [-1+3*ROBRAD, -2, 2, 0.5],
+                    [2, -2, 0.5, 4.5],
+                    [-4, 2.0, 3.5, 0.75]]
 elif ENVNUM == 2:  # fly trap
-    GOALAREA = [-1., 1, -2.5, -1.5]  # [xmin,xmax,ymin,ymax] Goal zone
-    ROBSTART = [4., 4.]  # robot starting location (x,y)
+    ENVAREA = [-5, 5, -5, 5]  # [xmin,xmax,ymin,ymax]
+    GOALAREA = [-1.0, 1.0, -2.5, -1.5]  # [xmin,xmax,ymin,ymax] Goal zone
+    ROBSTART = [4.0, 4.0]  # robot starting location (x,y)
     RANDAREA = [-4.9, 4.9, -4.9, 4.9]
-    OBSTACLELIST = [[1.5, 1, 0.5, 3.2], [-3, 1, 5, 0.5], [-3, -1, 5, 0.5], [1.5, -3.5, 0.5, 3.], [-4.3, -3.5, 6.3, 0.5]]
+    OBSTACLELIST = [[1.5, 1, 0.5, 3.2],
+                    [-3, 1, 5, 0.5],
+                    [-3, -1, 5, 0.5],
+                    [1.5, -3.5, 0.5, 3.],
+                    [-4.3, -3.5, 6.3, 0.5]]
 elif ENVNUM == 3:  # fly trap with gap
-    GOALAREA = [-1., 1, -2.5, -1.5]  # [xmin,xmax,ymin,ymax] Goal zone
-    ROBSTART = [4., 4.]  # robot starting location (x,y)
+    ENVAREA = [-5, 5, -5, 5]  # [xmin,xmax,ymin,ymax]
+    GOALAREA = [-1.0, 1.0, -2.5, -1.5]  # [xmin,xmax,ymin,ymax] Goal zone
+    ROBSTART = [4.0, 4.0]  # robot starting location (x,y)
     RANDAREA = [-4.9, 4.9, -4.9, 4.9]
-    OBSTACLELIST = [[1.5, 1, 0.5, 3.2], [-3, 1, 5, 0.5], [-3, -1, 5, 0.5], [1.5, -3.5, 0.5, 1.5], [-4.3, -3.5, 6.3, 0.5]]
+    OBSTACLELIST = [[1.5, 1.0, 0.5, 3.2],
+                    [-3.0, 1.0, 5.0, 0.5],
+                    [-3.0, -1.0, 5.0, 0.5],
+                    [1.5, -3.5, 0.5, 1.5],
+                    [-4.3, -3.5, 6.3, 0.5]]
 elif ENVNUM == 4:  # three slabs maze
-    GOALAREA = [2., 3.5, -4.5, -3.5]  # [xmin,xmax,ymin,ymax] Goal zone
-    ROBSTART = [4., 4.]  # robot starting location (x,y)
+    ENVAREA = [-5, 5, -5, 5]  # [xmin,xmax,ymin,ymax]
+    GOALAREA = [2.0, 3.5, -4.5, -3.5]  # [xmin,xmax,ymin,ymax] Goal zone
+    ROBSTART = [4.0, 4.0]  # robot starting location (x,y)
     RANDAREA = [-4.9, 4.9, -4.9, 4.9]
-    OBSTACLELIST = [[-2., 2., 6.0, 0.5], [-4.5, -0.5, 7., 0.5], [-3., -3., 7.0, 0.5]]
-
-# Saving Data Parameters
-# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data')  # path to save data
-# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/example')  # path to save data
-# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/delete_later')  # path to save data
-# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/exp')  # path to save data
-# SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/fixed_bug')  # path to save data
-SAVEPATH = os.path.join(os.path.abspath(os.path.dirname(os.path.realpath(__file__))), 'saved_data/IROS2021/final')  # path to save data
+    OBSTACLELIST = [[-2.0, 2.0, 6.0, 0.5],
+                    [-4.5, -0.5, 7.0, 0.5],
+                    [-3., -3., 7.0, 0.5]]
+elif ENVNUM == 9:  # easy environment
+    ENVAREA = [-5, 5, -5, 5]  # [xmin,xmax,ymin,ymax]
+    GOALAREA = [1.0, 4.0, -2.0, 2.0]  # [xmin,xmax,ymin,ymax] Goal zone
+    ROBSTART = [3.0, 3.0]  # robot starting location (x,y)
+    RANDAREA = [-4.9, 4.9, -4.9, 4.9]
+    OBSTACLELIST = [[-1.0, -1.0, 1.0, 1.0]]
+else:
+    raise ValueError('Invalid environment key!')
 
 
 # Noise parameters
 SIGMAW = np.diag([0.0000005, 0.0000005, 0.0000005])  # Covariance of process noise
-print('3 sigma value: ', 3*SIGMAW[0,0]**0.5)
+# SIGMAW = np.diag([0.001, 0.001, 0.001])  # Covariance of process noise
+# print('3 sigma value: ', 3*SIGMAW[0, 0]**0.5)
 SIGMAV = np.diag([0., 0., 0.])  # Covariance of sensor noise (we don't have any for now)
 CROSSCOR = np.diag([0., 0., 0.])  # Cross Correlation between the two noises (none for now)
 
