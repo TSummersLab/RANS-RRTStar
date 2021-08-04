@@ -20,26 +20,22 @@ This script runs the RRT*-generated path, extracted by `opt_path.py` with an nmp
 """
 
 import math
-from casadi import *
-import numpy as np
-import numpy.linalg as la
-import matplotlib.pyplot as plt
 import time
-
 import copy
 
+import numpy as np
+import numpy.linalg as la
+from casadi import *  # TODO don't import every function
+
+import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from matplotlib.offsetbox import AnnotationBbox, AuxTransformBox
 
-from collision_check import *
+from rans_rrtstar.common.collision_check import *  # TODO don't import every function
+from rans_rrtstar.common import ukf
+from rans_rrtstar import config
 
 
-import sys
-sys.path.insert(0, '../')
-
-from scripts import UKF_Estimator as UKF_Estimator
-
-import config
 STEER_TIME = config.STEER_TIME  # Maximum Steering Time Horizon
 DT = config.DT  # timestep between controls
 SAVEPATH = config.SAVEPATH
@@ -550,7 +546,7 @@ def disturbed_nmpc(N,T, rrt_states, rrt_inputs, num_steps, num_states, num_input
     applied_controls = []
     current_state = rrt_states[0].reshape(num_states, 1)  # x0
     # check if current state is safe
-    collision_detected = PtObsColFlag(current_state, obstaclelist, envbounds, ROBRAD)
+    collision_detected = point_obstacle_collision_flag(current_state, obstaclelist, envbounds, ROBRAD)
     if collision_detected:
         pt_obs_collision_detected = True
         return pt_obs_collision_detected, line_obs_collision_detected, nlp_failed_flag, [], [], []
@@ -670,13 +666,13 @@ def disturbed_nmpc(N,T, rrt_states, rrt_inputs, num_steps, num_states, num_input
 
 
         # check if realized state is safe
-        collision_detected = PtObsColFlag(realized_next_state, obstaclelist, envbounds, ROBRAD)
+        collision_detected = point_obstacle_collision_flag(realized_next_state, obstaclelist, envbounds, ROBRAD)
         if collision_detected:
             pt_obs_collision_detected = True
             break
 
         # check if line connecting previous state and realized state is safe
-        collision_detected = LineObsColFlag(current_state, realized_next_state, obstaclelist, ROBRAD)
+        collision_detected = line_obstacle_collision_flag(current_state, realized_next_state, obstaclelist, ROBRAD)
         if collision_detected:
             line_obs_collision_detected = True
             break
@@ -887,8 +883,8 @@ def ukfCovars(xHist, uHist, N, numStates, numOutputs, SigmaW, SigmaV, CrossCor, 
         ukf_params["SigmaE"] = SigmaE
         ukf_params["y_k"] = y_k
 
-        ukf_estimator = UKF_Estimator.UKF()  # initialize the state estimator
-        estimator_output = ukf_estimator.Estimate(ukf_params)  # get the estimates
+        ukf_estimator = ukf.UKF()  # initialize the state estimator
+        estimator_output = ukf_estimator.estimate(ukf_params)  # get the estimates
         SigmaE = estimator_output["SigmaE"] # Unbox the covariance
         covarHist.append(SigmaE.reshape(numStates, numStates))
 

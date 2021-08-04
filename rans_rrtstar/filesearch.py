@@ -1,3 +1,8 @@
+#!/usr/bin/env python3
+"""
+File searching functions
+"""
+
 import os
 from os.path import splitext
 import numpy as np

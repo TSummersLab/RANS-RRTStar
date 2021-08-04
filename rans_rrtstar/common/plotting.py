@@ -7,7 +7,7 @@ New in version 1_0:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Author:
-Ben Gravell
+Benjamin Gravell
 Email:
 benjamin.gravell@utdallas.edu
 Github:
@@ -25,17 +25,18 @@ import os
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-from matplotlib.collections import LineCollection, PatchCollection
-from matplotlib.patches import Rectangle, Polygon
+from matplotlib.collections import PatchCollection
+from matplotlib.patches import Rectangle
 from matplotlib.transforms import Affine2D
 import matplotlib.animation as ani
 
 from utility.pickle_io import pickle_import, pickle_export
 
-from filesearch import get_timestr, get_filename, get_vals_from_dirnames
+from rans_rrtstar.filesearch import get_timestr, get_vals_from_dirnames
 
-from config import SAVEPATH, STYLEPATH, RANDAREA, GOALAREA, ROBRAD
-import config
+from rans_rrtstar.config import SAVEPATH, STYLEPATH, RANDAREA, GOALAREA, ROBRAD
+from rans_rrtstar import config
+
 OBSTACLELIST = copy.copy(config.OBSTACLELIST)
 
 # NUM_TRIALS = 10  # TODO make this programmatic, needs to be saved from monte_carlo

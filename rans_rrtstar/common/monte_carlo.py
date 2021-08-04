@@ -7,7 +7,7 @@ New is v1_0:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Author:
-Ben Gravell
+Benjamin Gravell
 Email:
 benjamin.gravell@utdallas.edu
 Github:
@@ -36,20 +36,19 @@ import numpy.random as npr
 
 import matplotlib.pyplot as plt
 
-from tracking_controller import OpenLoopController, LQRController
-from collision_check import PtObsColFlag, LineObsColFlag
-from drrrts_nmpc import drrrtstar_with_nmpc
+from rans_rrtstar.config import DT, ENVAREA, RANDAREA, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX,\
+                   OBSTACLELIST, ROBRAD, QLL, RLL, QTLL, SIGMAW, SAVEPATH
+from rans_rrtstar.common.dynamics import DYN
+from rans_rrtstar.common.tracking_controller import OpenLoopController, LQRController, create_lqrm_controller
+from rans_rrtstar.common.collision_check import point_obstacle_collision_flag, line_obstacle_collision_flag
+from rans_rrtstar.common.drrrts_nmpc import drrrtstar_with_nmpc
+from rans_rrtstar.common.plotting import plot_paths
+from rans_rrtstar.filesearch import get_timestr
 
 from utility.path_utility import create_directory
 from utility.pickle_io import pickle_import, pickle_export
 from utility.matrixmath import mdot
 
-from scripts.dynamics import DYN
-
-from config import DT, ENVAREA, RANDAREA, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX,\
-                   OBSTACLELIST, ROBRAD, QLL, RLL, QTLL, SIGMAW, SAVEPATH
-
-from filesearch import get_timestr
 
 PROBLEM_DATA_STR = 'problem_data'
 RESULT_DATA_STR = 'result_data'
@@ -161,7 +160,6 @@ def make_controller(controller_str, x_ref_hist, u_ref_hist):
     """
     Creates the controller object and returns the time it took to do so
     """
-    from tracking_controller import create_lqrm_controller
 
     time_start = time.time()
     if controller_str == 'open-loop':
@@ -209,7 +207,7 @@ def rollout(n, m, T, DT, x0=None, w_hist=None, controller=None, saturate_inputs=
         x_old = np.copy(x)
         x = DYN.dtime_dynamics(x, u) + w
         # Check for collision
-        if PtObsColFlag(x, OBSTACLELIST, RANDAREA, ROBRAD) or LineObsColFlag(x_old, x, OBSTACLELIST, ROBRAD):
+        if point_obstacle_collision_flag(x, OBSTACLELIST, RANDAREA, ROBRAD) or line_obstacle_collision_flag(x_old, x, OBSTACLELIST, ROBRAD):
             collision_flag = True
             collision_idx = t
             x_hist[t+1:] = x  # pad out x_hist with the post-collision state
@@ -386,8 +384,6 @@ def score_histogram(score_dict):
 
 
 def plotter(result_data_dict, common_data):
-    from plotting import plot_paths
-
     x_ref_hist = common_data['x_ref_hist']
     u_ref_hist = common_data['u_ref_hist']
     T, n = x_ref_hist.shape

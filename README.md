@@ -37,7 +37,11 @@ The package uses Python 3 and requires the following packages:
 - NumPy
 - SciPy
 - CasADi
-- namedlist
+
+## Tested platforms
+
+[comment]: <> (- Python 3.7.1 on Ubuntu 18.04 LTS &#40;64 bit&#41; # TODO test this, previously we used Python 3.6.9 on Ubuntu which will not work since we are using dataclasses now)
+- Python 3.8.10 on Windows 10 Build 19043.1110 (64 bit)
 
 ## Package Organization and Description
 The main scripts are organized as follows:

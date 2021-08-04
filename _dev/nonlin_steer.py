@@ -2,7 +2,7 @@
 """
 Changelog:
 New in version 1_0:
-- Create steering function used as the basis for steering variations in the RRT* code and other scripts
+- Create steering function used as the basis for steering variations in the RRT* code and other common
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -46,10 +46,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 """
 
-
-import casadi as ca
 from casadi import *
-import casadi.tools as ca_tools
 import numpy as np
 import numpy.linalg as la
 import time
@@ -57,11 +54,11 @@ from matplotlib import pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.patches as mpatches
 import os
-import numpy.random as npr
 
 from utility.path_utility import create_directory
 
-import file_version
+from rans_rrtstar import file_version
+
 FILEVERSION = file_version.FILEVERSION  # version of this file
 SAVETIME = str(int(time.time()))  # Used in filename when saving data
 

@@ -5,7 +5,7 @@ from scipy import signal
 import casadi as cas
 from casadi import SX, Function
 
-from config import DT, STEER_TIME, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX, ENVAREA
+from rans_rrtstar.config import DT, STEER_TIME, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX, ENVAREA
 
 
 @dataclass
@@ -69,7 +69,7 @@ class Dynamics:
                 failure_times.append(ii)
         return [failures, failure_times]
 
-    def make_dynamics_namedlist(self):
+    def make_dynamics_dataclass(self):
         return DynamicsData(self.n, self.m)
 
 

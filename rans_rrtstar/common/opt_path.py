@@ -23,36 +23,35 @@ This script does the following:
 
 """
 
-# Import all the required libraries
-import math
-import matplotlib.pyplot as plt
-import pickle
-from casadi.tools import *
-import copy
-import numpy.linalg as la
-import sys
 import os
-sys.path.insert(0, '../')
+import math
+import copy
+import pickle
+
+import numpy as np
+import numpy.linalg as la
+from casadi import SX, mtimes, vertcat, reshape, nlpsol
+
+import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 
-from drrrts_nmpc import find_dr_padding, get_padded_edges
-
-from collision_check import PtObsColFlag, LineObsColFlag
+from rans_rrtstar.common.dynamics import DYN
+from rans_rrtstar.common.tree import TreeNode  # Needed for pickle import of TreeNode objects
+from rans_rrtstar.common.drrrts_nmpc import find_dr_padding, get_padded_edges
+from rans_rrtstar.common.collision_check import point_obstacle_collision_flag, line_obstacle_collision_flag
+from rans_rrtstar import file_version, config
 
 from utility.pickle_io import pickle_import
+from rans_rrtstar.config import DT, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX
 
 
 # Global variables
-import config
+FILEVERSION = file_version.FILEVERSION  # version of this file
+
 DT = config.DT  # timestep between controls
 SAVEPATH = config.SAVEPATH  # path where RRT* data is located and where this data will be stored
 GOALAREA = config.GOALAREA  # goal area [xmin,xmax,ymin,ymax]
 OBSTACLELIST = config.OBSTACLELIST
-
-import file_version
-FILEVERSION = file_version.FILEVERSION  # version of this file
-from config import DT, VELMIN, VELMAX, ANGVELMIN, ANGVELMAX
-
 SIGMAW = config.SIGMAW
 SIGMAV = config.SIGMAV
 CROSSCOR = config.CROSSCOR
@@ -71,8 +70,6 @@ lastalfa = ALFA[-1]
 obsalfa = ALFA[0:-4]
 obsalfa.insert(0, lastalfa)
 ALFA = obsalfa
-
-from scripts.dynamics import DYN
 
 
 def get_full_opt_traj_and_ctrls(pathNodesList):
@@ -280,6 +277,7 @@ def plot_data(tree_states, sampled_opt_traj_nodes_, full_opt_traj_states, full_o
 
 
 def save_data(full_opt_traj_states, full_opt_traj_ctrls, new_filename):
+    # TODO replace with pickle_export, need directory name
     state_file = new_filename + "_states"
     outfile = open(state_file, 'wb')
     pickle.dump(full_opt_traj_states, outfile)
@@ -407,29 +405,15 @@ def SetUpSteeringLawParameters(N, T, v_max, v_min, omega_max, omega_min, x_max=n
     # 100 * np.array([[1.0, 0.0],
     #                     [0.0, 1.0]])
 
-    # Define symbolic states using Casadi SX
-    x = SX.sym('x') # x position
-    y = SX.sym('y') # y position
-    theta = SX.sym('theta') # heading angle
-    states = vertcat(x, y, theta)  # all three states
-    n_states = states.size()[0]  # number of symbolic states
 
-    # Define symbolic inputs using Cadadi SX
-    v = SX.sym('v') # linear velocity
-    omega = SX.sym('omega') # angular velocity
-    controls = vertcat(v, omega)  # both controls
-    n_controls = controls.size()[0]  # number of symbolic inputs
-
-    # RHS of nonlinear unicycle dynamics (continuous time model)
-    rhs = horzcat(v * cos(theta), v * sin(theta), omega)
 
     # Unicycle continuous time dynamics function
-    f = Function('f', [states, controls], [rhs], ['input_state', 'control_input'], ['rhs'])
+    f = DYN.ctime_dynamics_cas()
 
     # Casadi SX trajectory variables/parameters for multiple shooting
-    U = SX.sym('U', N, n_controls)  # N trajectory controls
-    X = SX.sym('X', N + 1, n_states)  # N+1 trajectory states
-    P = SX.sym('P', n_states + n_states)  # first and last states as independent parameters
+    U = SX.sym('U', N, DYN.m)  # N trajectory controls
+    X = SX.sym('X', N + 1, DYN.n)  # N+1 trajectory states
+    P = SX.sym('P', DYN.n + DYN.n)  # first and last states as independent parameters
 
     # Concatinate the decision variables (inputs and states)
     opt_variables = vertcat(reshape(U, -1, 1), reshape(X, -1, 1))
@@ -488,7 +472,8 @@ def SetUpSteeringLawParameters(N, T, v_max, v_min, omega_max, omega_min, x_max=n
         lbx.append(theta_min)
         ubx.append(theta_max)
 
-    return solver, f, n_states, n_controls, lbx, ubx, lbg, ubg
+    return solver, f, DYN.n, DYN.m, lbx, ubx, lbg, ubg
+
 
 def nonlinsteer(solver, x0, xT, n_states, n_controls, N, T, lbg, lbx, ubg, ubx):
     """
@@ -542,6 +527,7 @@ def nonlinsteer(solver, x0, xT, n_states, n_controls, N, T, lbg, lbx, ubg, ubx):
     x_casadi = casadi_result[2 * N:].reshape(n_states, N + 1).T  # (N+1, n_states)
 
     return x_casadi, u_casadi
+
 
 def nonlinsteerNoColAvoid(solver, x0, xT, n_states, n_controls, N, T, U, X, P, DELTA, OBSPAD, ENVPAD, current_ref_traj, current_ref_inputs, obs_pad, env_pad):
     """
@@ -613,33 +599,9 @@ def nonlinsteerNoColAvoid(solver, x0, xT, n_states, n_controls, N, T, U, X, P, D
 
 
 def GetDynamics(N):
-
-    ###########################################################################
-    ######################### Begin Modular Part ##############################
-    ########## Can be changed representing any nonlinear system dynamics ######
-    ###########################################################################
-
-    # Define steer function variables
-    numStates = 3
-    numControls = 2
-
-    # Define symbolic states using Casadi SX
-    x = SX.sym('x')  # x position
-    y = SX.sym('y')  # y position
-    theta = SX.sym('theta')  # heading angle
-    states = vertcat(x, y, theta)  # all three states
-
-    # Define symbolic inputs using Cadadi SX
-    v = SX.sym('v')  # linear velocity
-    omega = SX.sym('omega')  # angular velocity
-    controls = vertcat(v, omega)  # both controls
-
-    # RHS of nonlinear unicycle dynamics (continuous time model)
-    rhs = horzcat(v * cos(theta), v * sin(theta), omega)
-
     # Nonlinear State Update function f(x,u)
     # Given {states, controls} as inputs, returns {rhs} as output
-    f = Function('f', [states, controls], [rhs], ['input_state', 'control_input'], ['rhs'])
+    f = DYN.ctime_dynamics_cas()
 
     # Input and state constraints
     v_max = VELMAX  # maximum linear velocity (m/s)
@@ -685,9 +647,9 @@ def GetDynamics(N):
 
 
 def SetUpSteeringLawParametersWithFinalHeading(N, dt, numStates, numControls):
-    '''
-    Same function as that in rans_rrtstar.py
-    '''
+    """
+    Same function as that in tree.py
+    """
 
     # Get the dynamics specific data
     argums, f = GetDynamics(N)
@@ -733,6 +695,7 @@ def SetUpSteeringLawParametersWithFinalHeading(N, dt, numStates, numControls):
     # self.SteerSetParams2 = SteerSetParams2(dt, f, N, solver, argums, numStates, numControls)
     return solver, argums
 
+
 def nonlinsteerRANSRRTSTAR(x0, xGoal, N, solver, argums, numStates, numControls):
 
     [x_casadi, u_casadi] = solveNLP(solver, argums, x0, xGoal, numStates, numControls, N, DT)
@@ -740,6 +703,7 @@ def nonlinsteerRANSRRTSTAR(x0, xGoal, N, solver, argums, numStates, numControls)
         return False, [], []
     else:
         return True, x_casadi, u_casadi
+
 
 def solveNLP(solver, argums, x0, xT, n_states, n_controls, N, T):
     # Create an initial state trajectory that roughly accomplishes the desired state transfer (by interpolating)
@@ -845,12 +809,12 @@ def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs):
                         # get dr-padding value
                         destination_dr_padding = obs_pad[-1, -1]  # this assumes all obstacles have equal padding
                         # check if new node is safe
-                        col_flag = PtObsColFlag(point, obstaclelist, envbounds, robrad + destination_dr_padding)
+                        col_flag = point_obstacle_collision_flag(point, obstaclelist, envbounds, robrad + destination_dr_padding)
                         if col_flag:
                             safe_check = False
                             break
                         # check if line connecting it to previous node is safe
-                        col_flag = LineObsColFlag(prev_pt, point, obstaclelist, robrad + destination_dr_padding)
+                        col_flag = line_obstacle_collision_flag(prev_pt, point, obstaclelist, robrad + destination_dr_padding)
                         prev_pt = point
                         if col_flag:
                             safe_check = False
@@ -997,12 +961,12 @@ def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs):
 #                         # get dr-padding value
 #                         destination_dr_padding = obs_pad[-1,-1] # this assumes all obstacles have equal padding
 #                         # check if new node is safe
-#                         col_flag = PtObsColFlag(point, obstaclelist, envbounds, robrad+destination_dr_padding)
+#                         col_flag = point_obstacle_collision_flag(point, obstaclelist, envbounds, robrad+destination_dr_padding)
 #                         if col_flag:
 #                             safe_check = False
 #                             break
 #                         # check if line connecting it to previous node is safe
-#                         col_flag = LineObsColFlag(prev_pt, point, obstaclelist, robrad+destination_dr_padding)
+#                         col_flag = line_obstacle_collision_flag(prev_pt, point, obstaclelist, robrad+destination_dr_padding)
 #                         if col_flag:
 #                             safe_check = False
 #                             break
@@ -1161,7 +1125,7 @@ def opt_and_short_traj(filename, save_path,
 
 
 if __name__ == '__main__':
-    from filesearch import get_filename
+    from rans_rrtstar.filesearch import get_filename
 
     prefix = 'NodeListData'
     filename = get_filename(SAVEPATH, tstr='last', prefix=prefix)

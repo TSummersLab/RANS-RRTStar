@@ -2,7 +2,7 @@ import numpy as np
 import numpy.random as npr
 import scipy.linalg as sla
 import scipy.signal as signal
-from scripts.geometry import rotation2d_matrix
+from rans_rrtstar.common import rotation2d_matrix
 import sys
 sys.path.insert(0, '../utility')
 from utility.matrixmath import mdot

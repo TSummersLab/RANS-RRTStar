@@ -16,6 +16,9 @@ Github:
 import numpy as np
 import os
 
+# Disable divide-by-zero warnings from NumPy
+# np.seterr(divide='ignore')
+
 # Absolute path to this config file
 CONFIGPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 
@@ -27,7 +30,7 @@ SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'IROS2021')  # path to save da
 # SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'Example')  # path to save data
 
 # Path to the style sheet for matplotlib
-STYLEPATH = os.path.join(CONFIGPATH, 'utility', 'conlab.mplstyle')
+STYLEPATH = os.path.join(CONFIGPATH, '../utility', 'conlab.mplstyle')
 
 # RRT Parameters
 NUMSAMPLES = 50  # 1200  # total number of samples

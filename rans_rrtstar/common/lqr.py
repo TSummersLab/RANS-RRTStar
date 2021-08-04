@@ -7,7 +7,7 @@ New in version 1_0:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Author:
-Ben Gravell
+Benjamin Gravell
 Email:
 benjamin.gravell@utdallas.edu
 Github:
@@ -26,8 +26,7 @@ import numpy as np
 import numpy.linalg as la
 import scipy.linalg as sla
 
-import sys
-sys.path.insert(0, '../utility')
+
 from utility.matrixmath import mdot, sympart
 
 

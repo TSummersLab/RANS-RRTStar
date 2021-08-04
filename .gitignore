@@ -5,10 +5,10 @@ rrtstar_nmpc/
 rrtstar/
 
 # Saved data
-saved_data/*
-!saved_data/IROS2021
-saved_data/IROS2021/*
-!saved_data/IROS2021/final
+rans_rrtstar/saved_data/*
+!rans_rrtstar/saved_data/IROS2021
+rans_rrtstar/saved_data/IROS2021/*
+!rans_rrtstar/saved_data/IROS2021/final
 
 # RRT* growth times
 RRTs_grow_times/
@@ -23,11 +23,11 @@ monte_carlo/path_plots/*
 
 # local backup files
 scripts-backup/
-scripts/backups/
-scripts/parallel_runs/
-scripts/destination_distribution_check.py
-scripts/low_level_controllers.py
-scripts/dr_low_level_controllers.py
+rans_rrtstar/common/backups/
+rans_rrtstar/common/parallel_runs/
+rans_rrtstar/common/destination_distribution_check.py
+rans_rrtstar/common/low_level_controllers.py
+rans_rrtstar/common/dr_low_level_controllers.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

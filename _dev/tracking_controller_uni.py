@@ -22,7 +22,7 @@ from utility.matrixmath import mdot
 # u[1] = angular speed
 
 
-from scripts.dynamics import DYN
+from rans_rrtstar.common import DYN
 dtime_dynamics, dtime_jacobian = DYN.dtime_dynamics, DYN.dtime_jacobian
 
 

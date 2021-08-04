@@ -38,27 +38,6 @@ Contributions: NLP solver bugfixes, code reorganization
 This script performs RRT or RRT* path planning using the unicycle dynamics for steering. Steering is achieved by solving
 a nonlinear program (NLP) using Casadi.
 
-Tested platform:
-- Python 3.6.9 on Ubuntu 18.04 LTS (64 bit)
-- Python 3.8.10 on Windows 10 Build 19043.1110
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 """
 
 # Import all the required libraries
@@ -67,6 +46,7 @@ import csv
 import copy
 import os
 import time
+from dataclasses import dataclass
 
 import numpy as np
 import numpy.random as npr
@@ -78,27 +58,20 @@ from casadi import SX, mtimes, nlpsol
 import matplotlib.pyplot as plt
 from matplotlib.collections import EllipseCollection
 
-from namedlist import namedlist
 
-# This hack is only needed to be able to run rans_rrtstar() from main.py in the directory above
-import sys
-sys.path.insert(0, 'scripts')
+from rans_rrtstar import config
 
+from rans_rrtstar.common.geometry import sample_rectangle, compute_L2_distance, saturate_node_with_L2
+from rans_rrtstar.common.dynamics import DYN
+from rans_rrtstar.common.ukf import UKF
+from rans_rrtstar.common.plotting import plot_env
 
-from geometry import sample_rectangle, compute_L2_distance, saturate_node_with_L2
-from scripts.dynamics import DYN
-from UKF_Estimator import UKF
-from scripts.plotting import plot_env
 from utility.path_utility import create_directory
 from utility.pickle_io import pickle_import, pickle_export
 
 
-np.seterr(divide='ignore')
-
-
 # Defining Global Variables (User chosen)
 # See config file for defaults
-import config
 SEED = config.SEED
 NUMSAMPLES = config.NUMSAMPLES  # total number of samples
 STEER_TIME = config.STEER_TIME  # Maximum Steering Time Horizon
@@ -129,7 +102,8 @@ RHL = config.RHL  # R matrix for quadratic cost
 
 
 # Defining Global Variables (NOT User chosen)
-import file_version
+from rans_rrtstar import file_version
+
 FILEVERSION = file_version.FILEVERSION  # version of this file
 SAVETIME = str(int(time.time()))  # Used in filename when saving data
 if not RANDNODES:
@@ -137,10 +111,25 @@ if not RANDNODES:
 create_directory(SAVEPATH)
 
 
-# Define the namedlists
-StartParams = namedlist("StartParams", "start randArea goal1Area maxIter plotFrequency obstacleList")
-SteerSetParams = namedlist("SteerSetParams", "dt f N solver argums num_states num_controls")
-SteerSetParams2 = namedlist("SteerSetParams2", "dt f N solver argums num_states num_controls")
+@dataclass
+class StartParams:
+    start: list  # robot starting location [x, y]
+    rand_area: list  # [xmin, xmax, ymin, ymax]
+    goal_area: list  # [xmin, xmax, ymin, ymax]
+    max_iter: int
+    plot_frequency: int
+    obstacle_list: list  # [[ox1, oy1, wd1, ht1], [ox2, oy2, wd2, ht2], ...]
+
+
+@dataclass
+class SteerSetParams:
+    dt: float  # discretized time step
+    f: ...  # CasADi Function of continuous-time dynamics
+    N: int # Prediction horizon
+    solver: ...  # CasADi solver object e.g. from nlpsol()
+    argums: dict  # constraint argument dictionary
+    num_states: int
+    num_controls: int
 
 
 def dummy_problem_ipopt():
@@ -189,25 +178,23 @@ class Tree:
     """
     Class for DR-RRT* Planning
     """
-    def __init__(self, startParam):
+    def __init__(self, start_param):
         """
-        startParam: list of the following items:
+        start_param: list of the following items:
             start   : Start Position [x,y]
             randArea: Ramdom Samping Area [xmin,xmax,ymin,ymax]
             goalArea: Goal Area [xmin,xmax,ymin,ymax]
             maxIter : Maximum # of iterations to run for constructing DR-RRT* Tree
         """
-        # Unwrap the StartParameters
-        start, rand_area, goal_area, maxIter, plotFrequency, obstacleList = startParam
 
         # Add the Double Integrator Data
         self.iter = 0
         self.controlPenalty = 0.02
-        self.plotFrequency = plotFrequency
-        self.rand_area = rand_area
-        self.goal_area = goal_area
-        self.maxIter = maxIter
-        self.obstacleList = obstacleList
+        self.plotFrequency = start_param.plot_frequency
+        self.rand_area = start_param.rand_area
+        self.goal_area = start_param.goal_area
+        self.maxIter = start_param.max_iter
+        self.obstacleList = start_param.obstacle_list
         self.num_states = DYN.n
         self.num_controls = DYN.m
         self.alfaThreshold = 0.01  # 0.05
@@ -227,7 +214,7 @@ class Tree:
         self.CrossCor = CROSSCOR  # Cross Correlation between the two noises. # TODO Remove this later ?
 
         # Initialize DR-RRT* tree node with start coordinates
-        self.initialize_tree(start)
+        self.initialize_tree(start_param.start)
 
     def initialize_tree(self, start):
         """
@@ -478,7 +465,7 @@ class Tree:
         # Create a solver that uses IPOPT with above solver settings
         solver = nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
 
-        self.SteerSetParams2 = SteerSetParams2(dt, f, N, solver, argums, num_states, num_controls)
+        self.SteerSetParams2 = SteerSetParams(dt, f, N, solver, argums, num_states, num_controls)
 
     def solveNLP(self, solver, argums, x0, xT, n_states, n_controls, N, T):
         """
@@ -647,7 +634,7 @@ class Tree:
             ukf_params["y_k"] = y_k
 
             ukf_estimator = UKF()  # initialize the state estimator
-            estimator_output = ukf_estimator.Estimate(ukf_params)  # get the estimates
+            estimator_output = ukf_estimator.estimate(ukf_params)  # get the estimates
             x_hat = np.squeeze(estimator_output["x_hat"])  # Unbox the state (this is the same as the input x_hat = xHist so we don't need it)
             SigmaE = estimator_output["SigmaE"]  # Unbox the covariance
             covarHist.append(SigmaE.reshape(num_states, num_states))
@@ -1157,11 +1144,11 @@ class Tree:
         return self.node_list
 
 
-def plot_saved_data(pathNodesList, filename, 
-                    tree=None, 
-                    plot_tree_node_centers=True, 
-                    plot_rejected_nodes=False, 
-                    show_start=True, 
+def plot_saved_data(pathNodesList, filename,
+                    tree=None,
+                    plot_tree_node_centers=True,
+                    plot_rejected_nodes=False,
+                    show_start=True,
                     plot_dr_check_ellipse=True):
     # Initialize figure
     fig, ax = plt.subplots(figsize=[9, 9])
@@ -1386,14 +1373,14 @@ def make_tree(seed=SEED, save_csv=False, print_summary=True, print_all_nodes=Fal
     dummy_problem_ipopt()
 
     # Define the starting parameters
-    startParam = make_start_parameters()
+    start_param = make_start_parameters()
 
     # Grow DR-RRTStar tree 
     t_start = time.time()
-    dr_rrtstar = Tree(startParam)
+    dr_rrtstar = Tree(start_param)
     pathNodesList = dr_rrtstar.ExpandTree()
     t_end = time.time()
-        
+
     if print_summary:
         # Print diagnostic info
         print("Number of Nodes:", len(pathNodesList))
@@ -1407,7 +1394,7 @@ def make_tree(seed=SEED, save_csv=False, print_summary=True, print_all_nodes=Fal
             print(fmt.format(k,
                              round(node.means[-1, 0, :][0], 2),
                              round(node.means[-1, 1, :][0], 2)))
-    
+
     # Pickle the node_list data and dump it for further analysis and plotting
     filename = 'NodeListData_' + FILEVERSION + '_' + SAVETIME
     pickle_export(SAVEPATH, filename, pathNodesList)

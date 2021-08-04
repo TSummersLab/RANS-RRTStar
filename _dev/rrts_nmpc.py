@@ -57,7 +57,8 @@ sys.path.insert(0, '../unicycle')
 sys.path.insert(0, '../rrtstar')
 from _dev import tracking_controller_uni
 
-import config
+from rans_rrtstar import config
+
 STEER_TIME = config.STEER_TIME # Maximum Steering Time Horizon
 DT = config.DT # timestep between controls
 SAVEPATH = config.SAVEPATH

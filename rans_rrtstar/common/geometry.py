@@ -3,7 +3,7 @@ import numpy as np
 import numpy.random as npr
 import numpy.linalg as la
 
-from config import SATLIM
+from rans_rrtstar.config import SATLIM
 
 
 def rotation2d_matrix(angle):

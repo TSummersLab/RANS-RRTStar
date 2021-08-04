@@ -19,31 +19,10 @@ vrengana@utdallas.edu
 This script contains functions used for performing point/obstacle and straight line/obstacle collision checks.
 Obstacles are asssumed 2D rectangles.
 
-Tested platform:
-- Python 3.6.9 on Ubuntu 18.04 LTS (64 bit)
-
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
 """
 
 
-def PtObsColFlag(state, obstaclelist, envbounds, robrad):
+def point_obstacle_collision_flag(state, obstaclelist, envbounds, robrad):
     """
     Performs a collision check between a point and all obstacles in a list.
     Also confirms that the point is inside of a given environment.
@@ -58,11 +37,12 @@ def PtObsColFlag(state, obstaclelist, envbounds, robrad):
 
     collision_found = False
 
-    x,y = state[0], state[1] # extract state x and y values
+    x, y = state[0], state[1]  # extract state x and y values
     xmin, xmax, ymin, ymax = envbounds[0], envbounds[1], envbounds[2], envbounds[3]
 
     # check if state is in the environment
-    if not ((xmin + robrad) <= x <= (xmax-robrad) and (ymin+robrad) <= y <= (ymax-robrad)):  # state not in environment
+    if not ((xmin + robrad) <= x <= (xmax - robrad) and (ymin + robrad) <= y <= (
+            ymax - robrad)):  # state not in environment
         collision_found = True
         return collision_found
 
@@ -72,20 +52,21 @@ def PtObsColFlag(state, obstaclelist, envbounds, robrad):
         bottom = oy
         top = oy + ht
 
-        if (left - robrad) <= x <= (right + robrad) and (bottom - robrad) <= y <= (top + robrad):  # state in an obstacle
+        if (left - robrad) <= x <= (right + robrad) and (bottom - robrad) <= y <= (
+                top + robrad):  # state in an obstacle
             collision_found = True
             return collision_found
 
     return collision_found
 
 
-def LineObsColFlag(state1, state2, obstaclelist, robrad):
+def line_obstacle_collision_flag(state1, state2, obstaclelist, robrad):
     """
     Performs a collision check between a line connecting two states and a list of obstacles
     We assume that points are inside the environment and not colliding with any obstacles.
 
     Inputs:
-    state1, state2: two states to check (must have passed the PtObsColFlag check)
+    state1, state2: two states to check (must have passed the point_obstacle_collision_flag check)
     obstaclelist: list of obstacles arranged as [[ox,oy,wd,ht],[ox,oy,wd,ht], ...]
     (ox,oy are lower left corner, wd, ht are width and height)
     robrad: robot radius. if nonzero, it is used to enlarge obstacles and shrink the environment
@@ -118,19 +99,18 @@ def LineObsColFlag(state1, state2, obstaclelist, robrad):
 
         # The two state are on two different sides of the obstacle
         # Calculate the slope of the line
-        lineSlope = (y2 - y1) / (x2 - x1)
+        lineSlope = (y2 - y1)/(x2 - x1)
 
         # Connect with a line to other point and check if it lies inside
-        yPoint1 = lineSlope * (minX - x1) + y1
-        yPoint2 = lineSlope * (maxX - x1) + y1
-        xPoint1 = (minY - y1) / lineSlope + x1
-        xPoint2 = (maxY - y1) / lineSlope + x1
+        yPoint1 = lineSlope*(minX - x1) + y1
+        yPoint2 = lineSlope*(maxX - x1) + y1
+        xPoint1 = (minY - y1)/lineSlope + x1
+        xPoint2 = (maxY - y1)/lineSlope + x1
 
         if (minY < yPoint1 < maxY or
-            minY < yPoint2 < maxY or
-            minX < xPoint1 < maxX or
-            minX < xPoint2 < maxX):
-
+                minY < yPoint2 < maxY or
+                minX < xPoint1 < maxX or
+                minX < xPoint2 < maxX):
             collision_found = True
             return collision_found
 
@@ -151,14 +131,14 @@ if __name__ == '__main__':
     # the segment s3-s4 does not intersect the obstacle (SAFE)
     # the segment s4-s5 intersects the obstacle (NOT SAFE)
 
-    s1status = PtObsColFlag(s1, obstaclelist, envbounds, robrad)
-    s2status = PtObsColFlag(s2, obstaclelist, envbounds, robrad)
-    s3status = PtObsColFlag(s3, obstaclelist, envbounds, robrad)
-    s4status = PtObsColFlag(s4, obstaclelist, envbounds, robrad)
-    s5status = PtObsColFlag(s5, obstaclelist, envbounds, robrad)
+    s1status = point_obstacle_collision_flag(s1, obstaclelist, envbounds, robrad)
+    s2status = point_obstacle_collision_flag(s2, obstaclelist, envbounds, robrad)
+    s3status = point_obstacle_collision_flag(s3, obstaclelist, envbounds, robrad)
+    s4status = point_obstacle_collision_flag(s4, obstaclelist, envbounds, robrad)
+    s5status = point_obstacle_collision_flag(s5, obstaclelist, envbounds, robrad)
 
-    l1status = LineObsColFlag(s3, s4, obstaclelist, robrad)
-    l2status = LineObsColFlag(s4, s5, obstaclelist, robrad)
+    l1status = line_obstacle_collision_flag(s3, s4, obstaclelist, robrad)
+    l2status = line_obstacle_collision_flag(s4, s5, obstaclelist, robrad)
 
     print('s1 is in collision: ', s1status)  # (True)
     print('s2 is in collision: ', s2status)  # (True)

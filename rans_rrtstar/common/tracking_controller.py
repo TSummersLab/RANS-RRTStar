@@ -2,12 +2,12 @@
 """
 Changelog:
 New in version 1_0:
-- Create script to run and test functions in `lqr_uni.py`
+- Create script to run and test functions in `lqr.py`
 
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Author:
-Ben Gravell
+Benjamin Gravell
 Email:
 benjamin.gravell@utdallas.edu
 Github:
@@ -16,7 +16,7 @@ Github:
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This script does the following:
-- Creates lqr and lqrm controllers. Edit `use_robust_lqr` to switch between lqr and lqrm.
+- Creates open-loop, lqr, and lqrm controllers. Edit `use_robust_lqr` to switch between lqr and lqrm.
 
 """
 
@@ -24,9 +24,9 @@ import os
 
 import numpy as np
 
-from config import SAVEPATH, DT, QLL, RLL, QTLL
-from scripts.dynamics import DYN
-from lqr import lqr, lqrm
+from rans_rrtstar.config import SAVEPATH, DT, QLL, RLL, QTLL
+from rans_rrtstar.common.dynamics import DYN
+from rans_rrtstar.common.lqr import lqr, lqrm
 
 from utility.pickle_io import pickle_import
 
