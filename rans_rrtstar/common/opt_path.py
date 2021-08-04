@@ -289,7 +289,7 @@ def save_data(full_opt_traj_states, full_opt_traj_ctrls, new_filename):
 
 
 ###############################################################################
-# TODO: automate making SetUpSteeringLawParameters and nonlinsteer match with rrstar.py functions
+# TODO: automate making setup_steering_law_parameters and nonlinsteer match with rrstar.py functions
 
 # def SetUpSteeringLawParametersSHORTENING(N, T, v_max, v_min, omega_max, omega_min, x_max=np.inf, x_min=-np.inf, y_max=np.inf, y_min=-np.inf, theta_max=np.inf, theta_min=-np.inf):
 #     Q = QHL
@@ -477,9 +477,9 @@ def SetUpSteeringLawParameters(N, T, v_max, v_min, omega_max, omega_min, x_max=n
 
 def nonlinsteer(solver, x0, xT, n_states, n_controls, N, T, lbg, lbx, ubg, ubx):
     """
-    Solves the nonlinear steering problem using the solver from SetUpSteeringLawParameters
+    Solves the nonlinear steering problem using the solver from setup_steering_law_parameters
     Inputs:
-        solver: Casadi NLP solver from SetUpSteeringLawParameters
+        solver: Casadi NLP solver from setup_steering_law_parameters
         x0, xT: initial and final states as (n_states)x1 ndarrays e.g. [[2.], [4.], [3.14]]
         n_states, n_controls: number of states and controls
         N: horizon
@@ -533,7 +533,7 @@ def nonlinsteerNoColAvoid(solver, x0, xT, n_states, n_controls, N, T, U, X, P, D
     """
     Solves the nonlinear steering problem using the solver from SetUpSteeringLawParametersBigM
     Inputs:
-        solver: Casadi NLP solver from SetUpSteeringLawParameters
+        solver: Casadi NLP solver from setup_steering_law_parameters
         x0, xT: initial and final states as (n_states)x1 ndarrays e.g. [[2.], [4.], [3.14]]
         n_states, n_controls: number of states and controls
         N: horizon
@@ -885,7 +885,7 @@ def shorten_traj(sampled_opt_traj_nodes_, all_rrt_states, all_rrt_inputs):
 #             except:
 #                 if not dr_short:  # RRT* is originally not DR-RRT*
 #                     # if not found, create the solver
-#                     [solver, _, _, _, lbx, ubx, lbg, ubg] = SetUpSteeringLawParameters(N, T, v_max, -v_max,
+#                     [solver, _, _, _, lbx, ubx, lbg, ubg] = setup_steering_law_parameters(N, T, v_max, -v_max,
 #                                                                                            omega_max, -omega_max,
 #                                                                                            5, -5,
 #                                                                                            5, -5,

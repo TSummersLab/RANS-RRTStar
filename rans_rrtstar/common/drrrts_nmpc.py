@@ -343,7 +343,7 @@ def nonlinsteerNoColAvoid(solver, x0, xT, n_states, n_controls, N, T, U, X, P, D
     """
     Solves the nonlinear steering problem using the solver from SetUpSteeringLawParametersBigM
     Inputs:
-        solver: Casadi NLP solver from SetUpSteeringLawParameters
+        solver: Casadi NLP solver from setup_steering_law_parameters
         x0, xT: initial and final states as (n_states)x1 ndarrays e.g. [[2.], [4.], [3.14]]
         n_states, n_controls: number of states and controls
         N: horizon
@@ -411,7 +411,7 @@ def nonlinsteerBigM(solver, x0, xT, n_states, n_controls, N, T, U, X, P, DELTA, 
     """
     Solves the nonlinear steering problem using the solver from SetUpSteeringLawParametersBigM
     Inputs:
-        solver: Casadi NLP solver from SetUpSteeringLawParameters
+        solver: Casadi NLP solver from setup_steering_law_parameters
         x0, xT: initial and final states as (n_states)x1 ndarrays e.g. [[2.], [4.], [3.14]]
         n_states, n_controls: number of states and controls
         N: horizon

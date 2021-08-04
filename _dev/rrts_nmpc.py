@@ -194,9 +194,9 @@ def SetUpSteeringLawParameters(N, T, v_max, v_min, omega_max, omega_min, x_max=n
 
 def nonlinsteer(solver, x0, xT, n_states, n_controls, N, T, lbg, lbx, ubg, ubx, current_ref_traj, current_ref_inputs):
     """
-    Solves the nonlinear steering problem using the solver from SetUpSteeringLawParameters
+    Solves the nonlinear steering problem using the solver from setup_steering_law_parameters
     Inputs:
-        solver: Casadi NLP solver from SetUpSteeringLawParameters
+        solver: Casadi NLP solver from setup_steering_law_parameters
         x0, xT: initial and final states as (n_states)x1 ndarrays e.g. [[2.], [4.], [3.14]]
         n_states, n_controls: number of states and controls
         N: horizon

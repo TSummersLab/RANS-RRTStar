@@ -13,11 +13,15 @@ sleiman.safaoui@utdallas.edu
 Github:
 @The-SS
 """
+
 import numpy as np
 import os
 
 # Disable divide-by-zero warnings from NumPy
 # np.seterr(divide='ignore')
+
+# Random seed
+SEED = 1
 
 # Absolute path to this config file
 CONFIGPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
@@ -26,8 +30,8 @@ CONFIGPATH = os.path.abspath(os.path.dirname(os.path.realpath(__file__)))
 SAVEDATA = True  # True --> save data, False --> don't save data
 
 # SAVEPATH = os.path.join(CONFIGPATH, 'saved_data')  # path to save data
-SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'IROS2021')  # path to save data
-# SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'Example')  # path to save data
+# SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'IROS2021')  # path to save data
+SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'Example')  # path to save data
 
 # Path to the style sheet for matplotlib
 STYLEPATH = os.path.join(CONFIGPATH, '../utility', 'conlab.mplstyle')
@@ -135,6 +139,3 @@ RHL = 100 * np.diag([1.0, 1.0]) # cost quadratic cost matrix for high level plan
 QLL = 100 * np.diag([1.0, 1.0, 0.1])
 RLL = 1 * np.diag([1.0, 1.0])
 QTLL = 10 * QLL
-
-# Random seed
-SEED = 1
