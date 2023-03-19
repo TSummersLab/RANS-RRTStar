@@ -59,11 +59,12 @@ from matplotlib.collections import EllipseCollection
 
 
 from rans_rrtstar import config
-
+from rans_rrtstar import file_version
 from rans_rrtstar.common.geometry import sample_rectangle, compute_L2_distance, saturate_node_with_L2
 from rans_rrtstar.common.dynamics import DYN
 from rans_rrtstar.common.ukf import UKF
 from rans_rrtstar.common.plotting import plot_env
+from rans_rrtstar.common.solver import dummy_problem_ipopt
 
 from utility.path_utility import create_directory
 from utility.pickle_io import pickle_import, pickle_export
@@ -101,8 +102,6 @@ RHL = config.RHL  # R matrix for quadratic cost
 
 
 # Defining Global Variables (NOT User chosen)
-from rans_rrtstar import file_version
-
 FILEVERSION = file_version.FILEVERSION  # version of this file
 SAVETIME = str(int(time.time()))  # Used in filename when saving data
 if not RANDNODES:
@@ -112,6 +111,9 @@ create_directory(SAVEPATH)
 
 @dataclass
 class StartParams:
+    """
+    Dataclass representing start parameters to initialize a Tree
+    """
     start: list  # robot starting location [x, y]
     rand_area: list  # [xmin, xmax, ymin, ymax]
     goal_area: list  # [xmin, xmax, ymin, ymax]
@@ -122,6 +124,9 @@ class StartParams:
 
 @dataclass
 class SteerSetParams:
+    """
+    Dataclass representing steering parameters
+    """
     dt: float  # discretized time step
     f: cas.Function  # CasADi Function of continuous-time dynamics
     N: int  # Prediction horizon
@@ -131,22 +136,9 @@ class SteerSetParams:
     num_controls: int
 
 
-# TODO move this to a separate file and call from other scripts that use IPOPT
-def dummy_problem_ipopt():
-    # This is just called to make the annoying IPOPT print banner show up before doing other stuff
-    from casadi import SX, nlpsol
-    x = SX.sym('x')
-    nlp = {'x': x, 'f': x**2}
-    settings = {'verbose': 0,
-                'ipopt.print_level': 0,
-                'print_time': 0}
-    sol = nlpsol('sol', 'ipopt', nlp, settings)
-    return sol()
-
-
 class TrajNode:
     """
-    Class Representing a steering law trajectory Node
+    Class representing a steering law trajectory Node
     """
     def __init__(self, num_states, num_controls):
         self.X = np.zeros((num_states, 1))  # State Vector
@@ -156,27 +148,27 @@ class TrajNode:
 
 class TreeNode:
     """
-    Class Representing a DR-RRT* Tree Node
+    Class representing a DR-RRT* Tree Node
     """
     def __init__(self, num_states, num_controls, num_traj_nodes):
         self.cost = 0.0  # Cost
         self.parent = None  # Index of the parent node
         self.means = np.zeros((num_traj_nodes, num_states, 1))  # Mean Sequence
         self.covars = np.zeros((num_traj_nodes, num_states, num_states))  # Covariance matrix sequence
-        self.inputCommands = np.zeros((num_traj_nodes - 1, num_controls))  # Input Commands to steer from parent to the node itself
+        self.input_commands = np.zeros((num_traj_nodes - 1, num_controls))  # Input Commands to steer from parent to the node itself
 
     def __eq__(self, other):
-        costFlag = self.cost == other.cost
-        parentFlag = self.parent == other.parent
-        meansFlag = np.array_equal(self.means, other.means)
-        covarsFlag = np.array_equal(self.covars, other.covars)
+        cost_flag = self.cost == other.cost
+        parent_flag = self.parent == other.parent
+        means_flag = np.array_equal(self.means, other.means)
+        covars_flag = np.array_equal(self.covars, other.covars)
 
-        return costFlag and parentFlag and meansFlag and covarsFlag
+        return cost_flag and parent_flag and means_flag and covars_flag
 
 
 class Tree:
     """
-    Class for DR-RRT* Planning
+    Class for DR-RRT* planning
     """
     def __init__(self, start_param):
         """
@@ -187,13 +179,12 @@ class Tree:
             maxIter : Maximum # of iterations to run for constructing DR-RRT* Tree
         """
 
-        # Add the Double Integrator Data
         self.iter = 0
         self.controlPenalty = 0.02
         self.plotFrequency = start_param.plot_frequency
         self.rand_area = start_param.rand_area
         self.goal_area = start_param.goal_area
-        self.maxIter = start_param.max_iter
+        self.max_iter = start_param.max_iter
         self.obstacleList = start_param.obstacle_list
         self.num_states = DYN.n
         self.num_controls = DYN.m
@@ -201,47 +192,42 @@ class Tree:
         self.alfa = [self.alfaThreshold] * len(self.obstacleList)
         self.alfa = copy.deepcopy(ALFA)
         self.saturation_limit = SATLIM
-        self.R = []
-        self.Q = []
+        self.Q = QHL
+        self.R = RHL
         self.dropped_samples = []
         self.S0 = np.array([[0.1, 0, 0],
-                           [0, 0.1, 0],
-                           [0, 0, 0.1]])
+                            [0, 0.1, 0],
+                            [0, 0, 0.1]])
         # Define the covariances of process and sensor noises
-        self.numOutputs = self.num_states
+        self.num_outputs = self.num_states
         self.SigmaW = SIGMAW  # 0.005 is good # Covariance of process noise
         self.SigmaV = SIGMAV  # Covariance of sensor noise
         self.CrossCor = CROSSCOR  # Cross Correlation between the two noises. # TODO Remove this later ?
 
+        self.steer_set_params_no_heading = self.setup_steering_law_parameters(enforce_final_heading=False)
+        self.steer_set_params_with_heading = self.setup_steering_law_parameters(enforce_final_heading=True)
+
+        self.free_points = []
+
         # Initialize DR-RRT* tree node with start coordinates
         self.initialize_tree(start_param.start)
 
-    def initialize_tree(self, start):
+    def initialize_tree(self, start_pos):
         """
         Prepares DR-RRT* tree node with start coordinates & adds to node_list
         """
 
-        # Create an instance of DR_RRTStar_Node class
         num_traj_nodes = 1
-        self.start = TreeNode(self.num_states, self.num_controls, num_traj_nodes)
+        start_node = TreeNode(self.num_states, self.num_controls, num_traj_nodes)
 
         for k in range(num_traj_nodes):
-            self.start.means[k, 0, :] = start[0]
-            self.start.means[k, 1, :] = start[1]
-            self.start.covars[k, :, :] = self.S0
+            start_node.means[k, 0, :] = start_pos[0]
+            start_node.means[k, 1, :] = start_pos[1]
+            start_node.covars[k, :, :] = self.S0
             # heading is already initialized to zero # TODO: try setting it to point to goal
             # no need to update the input since they are all zeros as initialized
-
-            # Add the created start node to the node_list
-        self.node_list = [self.start]
-
-    def get_dynamics(self):
-        # Define steer function variables
-        dt = DYN.Ts  # discretized time step
-        N = STEER_TIME  # Prediction horizon
-        constraint_argdict = DYN.state_control_constraints()
-        f = DYN.ctime_dynamics_cas()
-        return dt, N, constraint_argdict, f
+        self.node_list = [start_node]
+        return self.node_list
 
     def rand_free_checks(self, x, y):
         """
@@ -253,7 +239,7 @@ class Tree:
         """
 
         for ox, oy, wd, ht in self.obstacleList:
-            if ox <= x <= ox + wd and oy <= y <= oy + ht:
+            if ox <= x <= ox+wd and oy <= y <= oy+ht:
                 return False  # collision
         return True  # safe
 
@@ -261,134 +247,126 @@ class Tree:
         """
         Returns a randomly sampled node from the obstacle free space
         """
-        # Create a randNode as a tree object
+        # Create a rand_node as a tree object
         num_traj_nodes = 1
-        randNode = TreeNode(self.num_states, self.num_controls, num_traj_nodes)
+        rand_node = TreeNode(self.num_states, self.num_controls, num_traj_nodes)
 
         # Initialize using the generated free points
-        xFreePoints, yFreePoints, thetaFreePoints = self.freePoints
-        randNode.means[-1, 0, :] = xFreePoints[self.iter]
-        randNode.means[-1, 1, :] = yFreePoints[self.iter]
-        randNode.means[-1, 2, :] = thetaFreePoints[self.iter]
+        x_free_points, y_free_points, theta_free_points = self.free_points
+        rand_node.means[-1, 0, :] = x_free_points[self.iter]
+        rand_node.means[-1, 1, :] = y_free_points[self.iter]
+        rand_node.means[-1, 2, :] = theta_free_points[self.iter]
+        return rand_node
 
-        return randNode
+    def sample_free_point(self):
+        x, y = sample_rectangle(self.rand_area)
+        while not self.rand_free_checks(x, y):
+            x, y = sample_rectangle(self.rand_area)
+        theta = np.random.uniform(-np.pi, np.pi)
+        return x, y, theta
 
-    def get_free_random_points(self):
-        xFreePoints = []
-        yFreePoints = []
-        thetaFreePoints = []
+    def sample_goal_point(self):
+        x, y = sample_rectangle(self.goal_area)
+        theta = np.random.uniform(-np.pi, np.pi)
+        return x, y, theta
 
+    def get_free_random_points(self, num_points_in_goal=0):
         if RANDNODES:
-            # get 3% of the sampled points from the goal. The number is bounded within 2 and 10 nodes (2 < 3% < 10)
-            # (added at the end of the list of nodes)
-            points_in_goal = 0  # min(self.maxIter, min(max(2, int(3 / 100 * self.maxIter)), 10))
-            for iter in range(self.maxIter - points_in_goal):
-                # Sample uniformly around sample space
-                searchFlag = True
-                while searchFlag:
-                    # initialize with a random position in space with orientation = 0
-                    xPt, yPt = sample_rectangle(self.rand_area)
-                    if self.rand_free_checks(xPt, yPt):
-                        break
-                xFreePoints.append(xPt)
-                yFreePoints.append(yPt)
-                thetaFreePoints.append(np.random.uniform(-np.pi, np.pi))
-            for iter in range(points_in_goal):
-                xPt, yPt = sample_rectangle(self.goal_area)
-                thetaPt = np.random.uniform(-np.pi, np.pi)
-                xFreePoints.append(xPt)
-                yFreePoints.append(yPt)
-                thetaFreePoints.append(thetaPt)
+            x_free_points = []
+            y_free_points = []
+            theta_free_points = []
+
+            if num_points_in_goal == -1:
+                num_points_in_goal = int((3/100)*self.max_iter)  # Get 3% of the sampled points from the goal.
+                num_points_in_goal = np.clip(num_points_in_goal, 1, self.max_iter)  # Clip to interval [1, max_iter]
+
+            num_points_rand = self.max_iter - num_points_in_goal
+            for iter in range(self.max_iter):
+                if iter < num_points_rand:
+                    x, y, theta = self.sample_free_point()
+                else:
+                    x, y, theta = self.sample_goal_point()
+                x_free_points.append(x)
+                y_free_points.append(y)
+                theta_free_points.append(theta)
         else:
             # pre-chosen nodes (for debugging only)
-            xFreePoints.append(-3)
-            yFreePoints.append(-4)
-            thetaFreePoints.append(0)
-            xFreePoints.append(-1)
-            yFreePoints.append(-4)
-            thetaFreePoints.append(0)
-            xFreePoints.append(0.5)
-            yFreePoints.append(-4)
-            thetaFreePoints.append(np.pi / 2)
-            xFreePoints.append(0.5)
-            yFreePoints.append(0.5)
-            thetaFreePoints.append(np.pi / 2)
-            xFreePoints.append(0)
-            yFreePoints.append(-1.5)
-            thetaFreePoints.append(np.pi / 4)
+            x_free_points = [-3, -1, 0.5, 0.5, 0]
+            y_free_points = [-4, -4, -4, 0.5, -1.5]
+            theta_free_points = [0, 0, np.pi/2, np.pi/2, np.pi/4]
 
-        self.freePoints = [xFreePoints, yFreePoints, thetaFreePoints]
+        self.free_points = [x_free_points, y_free_points, theta_free_points]
+        return self.free_points
 
-    def get_ancestors(self, childNode):
+    def get_ancestors(self, child_node):
         """
         Returns the complete list of ancestors for a given child Node
         """
-        ancestornode_list = []
-        while childNode.parent is not None:
-            ancestornode_list.append(self.node_list[childNode.parent])
-            childNode = self.node_list[childNode.parent]
-        ancestornode_list.append(childNode)
-        return ancestornode_list
+        ancestor_node_list = []
+        while child_node.parent is not None:
+            ancestor_node_list.append(self.node_list[child_node.parent])
+            child_node = self.node_list[child_node.parent]
+        ancestor_node_list.append(child_node)
+        return ancestor_node_list
 
-    def get_nearest_list_index(self, randNode):
+    def get_nearest_list_index(self, rand_node):
         """
         Returns the index of the node in the tree that is closest to the randomly sampled node
         Input Parameters:
-        randNode  : The randomly sampled node around which a nearest node in the DR-RRT* tree has to be returned
+        rand_node  : The randomly sampled node around which a nearest node in the DR-RRT* tree has to be returned
         """
-        distance_list = [compute_L2_distance(node, randNode) for node in self.node_list]
+        distance_list = [compute_L2_distance(node, rand_node) for node in self.node_list]
         return distance_list.index(min(distance_list))
 
-    def prepare_trajectory(self, meanValues, covarValues, inputCommands):
+    def prepare_trajectory(self, mean_values, covar_values, input_commands):
         """
         Prepares the trajectory as trajNode from steer function outputs
 
         Input Parameters:
-        meanValues : List of mean values
-        covarValues : List of covariance values
-        inputCommands: List of input commands
+        mean_values : List of mean values
+        covar_values : List of covariance values
+        input_commands: List of input commands
 
         Output Parameters:
         xTrajs: List of TrajNodes
         """
 
-        T = len(inputCommands)
+        T = len(input_commands)
         # Trajectory data as trajNode object for each steer time step
         xTrajs = [TrajNode(self.num_states, self.num_controls) for i in range(T+1)]
         for k, xTraj in enumerate(xTrajs):
-            xTraj.X = meanValues[k]
-            xTraj.Sigma = covarValues[k]  # TODO: CHECK DIM'N/ELEMENT ACCESS
+            xTraj.X = mean_values[k]
+            xTraj.Sigma = covar_values[k]
             if k < T:
-                xTraj.Ctrl = inputCommands[k]
+                xTraj.Ctrl = input_commands[k]
         return xTrajs
 
     def setup_steering_law_parameters(self, enforce_final_heading=True):
+        # Get the steer function variables
         num_states, num_controls = self.num_states, self.num_controls
+        dt = DYN.Ts
+        N = STEER_TIME
 
-        # Get the dynamics specific data
-        dt, N, argums, f = self.get_dynamics()
+        f = DYN.ctime_dynamics_cas()
+        constraint_argdict = DYN.state_control_constraints()
 
-        # Define state and input cost matrices for solving the NLP
-        Q = QHL
-        R = RHL
-        self.Q = Q
-        self.R = R
-
-        # Casadi SX trajectory variables/parameters for multiple shooting
+        # CasADi SX trajectory variables/parameters for multiple shooting
         U = SX.sym('U', N, num_controls)  # N trajectory controls
-        X = SX.sym('X', N + 1, num_states)  # N+1 trajectory states
+        X = SX.sym('X', N+1, num_states)  # N+1 trajectory states
         P = SX.sym('P', num_states + num_states)  # first and last states as independent parameters
 
-        # Concatinate the decision variables (inputs and states)
+        # Concatenate the decision variables (inputs and states)
         opt_variables = cas.vertcat(cas.reshape(U, -1, 1), cas.reshape(X, -1, 1))
 
-        # Cost function
-        obj = 0  # objective/cost
-        g = []  # equality constraints
+        # Objective function
+        obj = 0
+
+        # Equality constraints list
+        g = []
         g.append(X[0, :].T - P[:3])  # add constraint on initial state
         for i in range(N):
             # add to the cost the quadratic stage cost: (x-x_des)*Q*(x-x_des)^T + u*R*u^T
-            obj += mtimes([U[i, :], R, U[i, :].T])  # quadratic penalty on control effort
+            obj += mtimes([U[i, :], self.R, U[i, :].T])  # quadratic penalty on control effort
             # compute the next state from the dynamics
             x_next_ = f(X[i, :], U[i, :]) * dt + X[i, :]
             # make the dynamics' next state the same as the i+1 trajectory state (multiple shooting)
@@ -410,7 +388,7 @@ class Tree:
 
         # Create a solver that uses IPOPT with above solver settings
         solver = nlpsol('solver', 'ipopt', nlp_prob, opts_setting)
-        return SteerSetParams(dt, f, N, solver, argums, num_states, num_controls)
+        return SteerSetParams(dt, f, N, solver, constraint_argdict, num_states, num_controls)
 
     def solve_nlp(self, solver, argums, x0, xT, n_states, n_controls, N, T):
         """
@@ -465,41 +443,40 @@ class Tree:
         u_casadi = casadi_result[:2*N].reshape(n_controls, N).T  # (N, n_controls)
         return x_casadi, u_casadi
 
-    def nonlinsteer(self, steerParams):
+    def nonlinsteer(self, steer_params):
         """
         Use created solver from `setup_steering_law_parameters` to solve NLP using `solve_nlp` then rearrange the results
         """
 
         # Unbox the input parameters
-        fromNode = steerParams["fromNode"]
-        toNode = steerParams["toNode"]
-        SteerSetParams = steerParams["Params"]
+        from_node = steer_params["from_node"]
+        to_node = steer_params["to_node"]
+        steer_set_params = steer_params["params"]
 
         # Unwrap the variables needed for simulation
-        N = SteerSetParams.N  # Steering horizon
-        solver = SteerSetParams.solver  # NLP IPOPT Solver object
-        argums = SteerSetParams.argums  # NLP solver arguments
-        num_states = SteerSetParams.num_states  # Number of states
-        num_controls = SteerSetParams.num_controls  # Number of controls
+        N = steer_set_params.N  # Steering horizon
+        solver = steer_set_params.solver  # NLP IPOPT Solver object
+        argums = steer_set_params.argums  # NLP solver arguments
+        num_states = steer_set_params.num_states  # Number of states
+        num_controls = steer_set_params.num_controls  # Number of controls
 
         # Feed the source and destination parameter values
-        x0 = fromNode.means[-1, :, :]  # source
-        xGoal = toNode.means[-1, :, :]  # destination
+        x0 = from_node.means[-1, :, :]  # source
+        xGoal = to_node.means[-1, :, :]  # destination
 
-        [x_casadi, u_casadi] = self.solve_nlp(solver, argums, x0, xGoal, num_states, num_controls, N, DT)
+        x_casadi, u_casadi = self.solve_nlp(solver, argums, x0, xGoal, num_states, num_controls, N, DT)
 
         if x_casadi is None or u_casadi is None:
             # NLP problem failed to find a solution
-            steerResult = False
-            steerOutput = {"means": [],
-                           "covars": [],
-                           "cost": [],
-                           "steerResult": steerResult,
-                           "inputCommands": []}
-            return steerOutput
+            steer_output = {"means": [],
+                            "covars": [],
+                            "cost": [],
+                            "steer_result": False,
+                            "input_commands": []}
+            return steer_output
         else:
             # Steering is successful
-            steerResult = True
+            steer_result = True
             xHist = []
             uHist = []
 
@@ -513,7 +490,7 @@ class Tree:
             Q = self.Q
             R = self.R
             QT = self.Q
-            steeringCost = 0
+            steering_cost = 0
             xGoal3 = xGoal.reshape(num_states)  # Goal node we tried to steer to
             for i in range(len(uHist)):
                 cost_i = 0
@@ -526,51 +503,51 @@ class Tree:
                 ctrl_i = ctrl_i.reshape(num_controls)
                 cost_i += ctrl_i.dot(R).dot(ctrl_i)
                 # update steering cost
-                steeringCost += cost_i
+                steering_cost += cost_i
             # add cost on final state relative to goal. should always be zero
             state_i = copy.copy(xHist[i + 1])
             state_i = state_i.reshape(num_states)  # subtract the desired location
             cost_i = (state_i - xGoal3).dot(QT).dot(state_i - xGoal3)
-            steeringCost += cost_i
+            steering_cost += cost_i
 
             # Find covariances
             if DRRRT:
-                covarHist = self.ukf_covars(xHist, uHist, steerParams)
+                covar_hist = self.ukf_covars(xHist, uHist, steer_params)
             else:
-                covarHist = [np.zeros([num_states, num_states])] * (N + 1)
+                covar_hist = [np.zeros([num_states, num_states])] * (N + 1)
 
             # Prepare output dictionary
-            steerOutput = {"means": xHist,
-                           "covars": covarHist,
-                           "cost": steeringCost,
-                           "steerResult": steerResult,
-                           "inputCommands": uHist}
-            return steerOutput
+            steer_output = {"means": xHist,
+                           "covars": covar_hist,
+                           "cost": steering_cost,
+                           "steer_result": steer_result,
+                           "input_commands": uHist}
+            return steer_output
 
-    def ukf_covars(self, xHist, uHist, steerParams):
+    def ukf_covars(self, x_hist, u_hist, steer_params):
         # Unbox the input parameters
-        fromNode = steerParams["fromNode"]
-        SteerSetParams = steerParams["Params"]
+        from_node = steer_params["from_node"]
+        steer_set_params = steer_params["params"]
 
         # Unwrap the variables needed for simulation
-        N = SteerSetParams.N  # Steering horizon
+        N = steer_set_params.N  # Steering horizon
         num_states = self.num_states  # Number of states
 
         ukf_params = {}
         ukf_params["n_x"] = self.num_states
-        ukf_params["n_o"] = self.numOutputs
+        ukf_params["n_o"] = self.num_outputs
         ukf_params["SigmaW"] = self.SigmaW
         ukf_params["SigmaV"] = self.SigmaV
         ukf_params["CrossCor"] = self.CrossCor  # TODO: DEFINED THIS IS __init__
         ukf_params["dT"] = DT
 
         # Find covariances
-        SigmaE = fromNode.covars[-1, :, :]  # covariance at initial/from node
-        covarHist = [SigmaE]
+        SigmaE = from_node.covars[-1, :, :]  # covariance at initial/from node
+        covar_hist = [SigmaE]
         for k in range(0, N):  # TODO: is this up to N or N-1
-            x_hat = xHist[k]  # TODO: k-th state?
-            u_k = uHist[k]  # TODO: k-th control? ALSO CHECK DIM'N
-            y_k = xHist[k+1]  # (we assume perfect full state feedback so y = x) TODO: k+1-th measurement = k+1 state?
+            x_hat = x_hist[k]  # TODO: k-th state?
+            u_k = u_hist[k]  # TODO: k-th control? ALSO CHECK DIM'N
+            y_k = x_hist[k + 1]  # (we assume perfect full state feedback so y = x) TODO: k+1-th measurement = k+1 state?
 
             ukf_params["x_hat"] = x_hat
             ukf_params["u_k"] = u_k
@@ -581,9 +558,9 @@ class Tree:
             estimator_output = ukf_estimator.estimate(ukf_params)  # get the estimates
             x_hat = np.squeeze(estimator_output["x_hat"])  # Unbox the state (this is the same as the input x_hat = xHist so we don't need it)
             SigmaE = estimator_output["SigmaE"]  # Unbox the covariance
-            covarHist.append(SigmaE.reshape(num_states, num_states))
+            covar_hist.append(SigmaE.reshape(num_states, num_states))
 
-        return covarHist
+        return covar_hist
 
     def perform_collision_check(self, xTrajs):
         """
@@ -631,11 +608,11 @@ class Tree:
             # TODO: CHECK HOW THE 2-NORM TERM IS FOUND LATER
             Delta = math.sqrt((1-alpha)/alpha)
             # print('padding: ', Delta*math.sqrt(xDir.T @ trajNode.Sigma @ xDir))
-            if trajNode.X[0] >= (ox - Delta*math.sqrt(xDir.T @ trajNode.Sigma @ xDir)) and \
-                trajNode.X[0] <= (ox + wd + Delta*math.sqrt(xDir.T @ trajNode.Sigma @ xDir) ) and \
-                trajNode.X[1] <= (oy - Delta*math.sqrt(yDir.T @ trajNode.Sigma @ yDir)) and \
-                trajNode.X[1] >= (oy + ht + Delta*math.sqrt(yDir.T @ trajNode.Sigma @ yDir)):
-                # collision has occured, so return false
+            x_pad = Delta*math.sqrt(xDir.T@trajNode.Sigma@xDir)
+            y_pad = Delta*math.sqrt(yDir.T@trajNode.Sigma@yDir)
+            if (ox - x_pad) <= trajNode.X[0] <= (ox + wd + x_pad) and \
+               (oy - y_pad) <= trajNode.X[1] <= (oy + ht + y_pad):
+                # collision has occurred, so return false
                 drCollisionFreeFlag = False
                 return drCollisionFreeFlag
 
@@ -709,7 +686,7 @@ class Tree:
         nearestIndex : Index of the nearestNode in the DR-RRT* tree
         xTrajs       : Trajectory data containing the sequence of means
         trajCost     : Cost to Steer from nearestNode to randNode
-        inputCommands: Input commands needed to steer from nearestNode to randNode
+        input_commands: Input commands needed to steer from nearestNode to randNode
         """
         # Convert trajNode to DR-RRT* Tree Node
         num_traj_nodes = len(xTrajs)
@@ -719,7 +696,7 @@ class Tree:
             minNode.means[k, :, :] = xTraj.X
             minNode.covars[k, :, :] = xTraj.Sigma
             if k < num_traj_nodes - 1:
-                minNode.inputCommands[k, :] = xTraj.Ctrl
+                minNode.input_commands[k, :] = xTraj.Ctrl
         minNode.cost = self.node_list[nearestIndex].cost + trajCost
         # Associate MinNode's parent as NearestNode
         minNode.parent = nearestIndex
@@ -816,7 +793,7 @@ class Tree:
                 # overwrite the mean and inputs sequences in the nearby node
                 self.node_list[nearIndex].means = meanSequence  # add the means from xTrajs
                 self.node_list[nearIndex].covars = covarSequence  # add the covariances from xTrajs
-                self.node_list[nearIndex].inputCommands = inputCtrlSequence  # add the controls from xTrajs
+                self.node_list[nearIndex].input_commands = inputCtrlSequence  # add the controls from xTrajs
                 # Update the children of nearNode about the change in cost
                 rewire_count = 0
                 self.UpdateDescendantsCost(self.node_list[nearIndex], rewire_count)
@@ -859,7 +836,7 @@ class Tree:
                 # overwrite the mean and inputs sequences in the nearby node
                 childNode.means = meanSequence
                 childNode.covars = covarSequence
-                childNode.inputCommands = inputCtrlSequence
+                childNode.input_commands = inputCtrlSequence
                 # Get one more level deeper
                 self.UpdateDescendantsCost(childNode, rewire_count)
 
@@ -915,10 +892,10 @@ class Tree:
         to_node  : node to be added (DR_RRTStar_Node)
         Outputs:
         - Steering success flag (Type: bool)
-        - Prepared trajectory (xTrajs) returned by prepare_trajectory (type: # TODO: fill this)
+        - Prepared trajectory (x_trajs) returned by prepare_trajectory (type: # TODO: fill this)
         - Trajectory cost (type: float # TODO: CHECK THIS)
         The three outputs can have one of two options
-        - True, xTrajs, trajCost: if steering succeeds (True), a trajectory is prepared (xTrajs); its cost is trajCost
+        - True, x_trajs, trajCost: if steering succeeds (True), a trajectory is prepared (x_trajs); its cost is trajCost
         - return False, [], 0: if steering fails (False), the other parameters are set to bad values [] and 0 # TODO: consider replacing 0 with inf
         """
         # Steer from nearestNode to the randomNode
@@ -935,46 +912,46 @@ class Tree:
             to_node_chosen = self.node_list[to_idx]
 
         if enforce_final_heading:
-            steer_set_param = self.SteerSetParams2
+            steer_set_param = self.steer_set_params_with_heading
         else:
-            steer_set_param = self.SteerSetParams
+            steer_set_param = self.steer_set_params_no_heading
 
-        steerParams = {"fromNode": from_node_chosen,
-                       "toNode": to_node_chosen,
-                       "Params": steer_set_param}
+        steer_params = {"from_node": from_node_chosen,
+                        "to_node": to_node_chosen,
+                        "params": steer_set_param}
 
-        steerOutput = self.nonlinsteer(steerParams)
+        steer_output = self.nonlinsteer(steer_params)
 
         # Unbox the steer function output
-        meanValues = steerOutput["means"]
-        covarValues = steerOutput["covars"]
-        trajCost = steerOutput["cost"]
-        steerResult = steerOutput["steerResult"]
-        inputCommands = steerOutput["inputCommands"]
+        meanValues = steer_output["means"]
+        covarValues = steer_output["covars"]
+        trajCost = steer_output["cost"]
+        steer_result = steer_output["steer_result"]
+        input_commands = steer_output["input_commands"]
 
         # If the steering law fails, force next iteration with different random sample
-        if not steerResult:
+        if not steer_result:
             # print('NLP Steering Failed XXXXXXXXX')
             return False, [], 0
 
         # Proceed only if the steering law succeeds
         # Prepare the trajectory
-        xTrajs = self.prepare_trajectory(meanValues, covarValues, inputCommands)
+        x_trajs = self.prepare_trajectory(meanValues, covarValues, input_commands)
 
         # Check for Distributionally Robust Feasibility of the whole trajectory
-        collisionFreeFlag = self.perform_collision_check(xTrajs)
+        collision_free_flag = self.perform_collision_check(x_trajs)
 
         # If a collision was detected, stop and move on
-        if not collisionFreeFlag:
+        if not collision_free_flag:
             # print('DR Collision Detected @@@@@@@@@')
             return False, [], 0
 
-        return True, xTrajs, trajCost
+        return True, x_trajs, trajCost
 
     def steer_and_get_min_node(self, from_idx=None, from_node=None, to_idx=None, to_node=None):
         # steer and find the trajectory and trajectory cost
-        success_steer, xTrajs, trajCost = self.steer_and_generate_traj_and_cost(from_idx=from_idx, to_node=to_node,
-                                                                                enforce_final_heading=False)
+        success_steer, x_trajs, traj_cost = self.steer_and_generate_traj_and_cost(from_idx=from_idx, to_node=to_node,
+                                                                                  enforce_final_heading=False)
 
         # If steering failed, stop
         if not success_steer:
@@ -982,7 +959,7 @@ class Tree:
 
         # If steering succeeds
         # Create minNode with trajectory data & do not add to the tree for the time being
-        minNode = self.prepare_min_node(from_idx, xTrajs, trajCost)
+        minNode = self.prepare_min_node(from_idx, x_trajs, traj_cost)
 
         return True, minNode
 
@@ -991,20 +968,16 @@ class Tree:
         Subroutine that grows DR-RRT* Tree
         """
 
-        # Prepare And Load The Steering Law Parameters
-        self.SteerSetParams = self.setup_steering_law_parameters(enforce_final_heading=False)
-        self.SteerSetParams2 = self.setup_steering_law_parameters(enforce_final_heading=True)
-
         # Generate maxIter number of free points in search space
         t1 = time.time()
-        self.get_free_random_points()
+        self.get_free_random_points(num_points_in_goal=10)
         t2 = time.time()
-        print('Finished Generating Free Points !!! Time elapsed: ', t2 - t1)
+        print('Finished generating free points! Time elapsed: ', t2 - t1)
 
         num_steer_fail = 0  # number of nodes that fail to steer
         # Iterate over the maximum allowable number of nodes
-        for iter in range(self.maxIter):
-            print('Iteration Number %6d / %6d' % (iter+1, self.maxIter))
+        for iter in range(self.max_iter):
+            print('Iteration Number %6d / %6d'%(iter+1, self.max_iter))
             self.iter = iter
 
             # Get a random feasible point in the space as a DR-RRT* Tree node
@@ -1016,7 +989,7 @@ class Tree:
 
             # Saturate randNode
             randNode = saturate_node_with_L2(self.node_list[nearestIndex], randNode)
-            xFreePoints, yFreePoints, thetaFreePoints = self.freePoints
+            xFreePoints, yFreePoints, thetaFreePoints = self.free_points
             xFreePoints[self.iter] = randNode.means[-1, 0, :]
             yFreePoints[self.iter] = randNode.means[-1, 1, :]
             thetaFreePoints[self.iter] = randNode.means[-1, 2, :]
@@ -1033,7 +1006,7 @@ class Tree:
             if RRT:
                 self.node_list.append(minNode)
             else:
-                # Get all the nodes in the DR-RRT* Tree that are closer to the randomNode within a specified search radius
+                # Get all the nodes in the DR-RRT* Tree near the randomNode within a specified search radius
                 nearIndices = self.find_near_node_indices(randNode)
                 # Choose the minimum cost path to connect the random node
                 minNode = self.connect_via_minimum_cost_path(nearestIndex, nearIndices, randNode, minNode)
@@ -1073,7 +1046,7 @@ def plot_saved_data(pathNodesList, filename,
         else:
             x_sampled = []
             y_sampled = []
-            xFreePoints, yFreePoints, thetaFreePoints = tree.freePoints
+            xFreePoints, yFreePoints, thetaFreePoints = tree.free_points
             for i in range(len(xFreePoints)):
                 if not i in tree.dropped_samples:  # skip nodes that became infeasible after saturation
                     x_sampled.append(xFreePoints[i])
@@ -1174,7 +1147,7 @@ def plot_saved_data(pathNodesList, filename,
     ax.set_ylabel('y')
     ax.autoscale(False)
 
-    plt.pause(1.0001)
+    plt.pause(0.1)
     if SAVEDATA:
         plot_filename = filename.replace('NodeListData', "plot_tree")
         plot_name = plot_filename + '.png'
@@ -1242,11 +1215,11 @@ def write_pathnodes_csv(pathNodesList, filename, print_pathnodes=False):
             if print_pathnodes:
                 print('~~~~~~~~~~~~~~~~~~~~~~')
                 print(line.means[0])
-                print(line.inputCommands)
+                print(line.input_commands)
                 print(line.parent)
 
             means = line.means
-            inputCommands = line.inputCommands
+            input_commands = line.input_commands
             parent = line.parent
             if parent is None:
                 parent = -1
@@ -1254,7 +1227,7 @@ def write_pathnodes_csv(pathNodesList, filename, print_pathnodes=False):
             data_list = [parent]
             for m in means:
                 data_list.extend(m.reshape([3]).tolist())
-            for ic in inputCommands:
+            for ic in input_commands:
                 data_list.extend(ic.tolist())
             csv_writer.writerow(data_list)
     return
@@ -1262,8 +1235,8 @@ def write_pathnodes_csv(pathNodesList, filename, print_pathnodes=False):
 
 def load_and_plot_tree(filename, tree=None):
     path_in = os.path.join(SAVEPATH, filename)
-    pathNodesList = pickle_import(path_in)
-    plot_saved_data(pathNodesList, filename, tree)
+    path_nodes_list = pickle_import(path_in)
+    plot_saved_data(path_nodes_list, filename, tree)
     return
 
 

@@ -118,7 +118,7 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
         for i in range(num_traj_states-1):
             pt = [goal_node.means[i, 0, :][0], goal_node.means[i, 1, :][0], goal_node.means[i, 2, :][0]]
             traj.append(pt)
-            ctrl = [goal_node.inputCommands[i, 0], goal_node.inputCommands[i, 1]]
+            ctrl = [goal_node.input_commands[i, 0], goal_node.input_commands[i, 1]]
             ctrl_inputs.append(ctrl)
             pt_2 = [goal_node.means[i+1, 0, :][0], goal_node.means[i+1, 1, :][0], goal_node.means[i+1, 2, :][0]]
             diff = DYN.one_step_sim_diff(pt, ctrl, pt_2)
@@ -147,7 +147,7 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
             for i in range(num_traj_states-1):
                 pt = [parent_node.means[i, 0, :][0], parent_node.means[i, 1, :][0], parent_node.means[i, 2, :][0]]
                 traj.append(pt)
-                ctrl = [parent_node.inputCommands[i, 0], parent_node.inputCommands[i, 1]]
+                ctrl = [parent_node.input_commands[i, 0], parent_node.input_commands[i, 1]]
                 ctrl_inputs.append(ctrl)
                 pt_2 = [parent_node.means[i + 1, 0, :][0], parent_node.means[i + 1, 1, :][0],
                         parent_node.means[i + 1, 2, :][0]]
@@ -160,7 +160,6 @@ def get_full_opt_traj_and_ctrls(pathNodesList):
             # find index of parent
             idx_of_parent_node = parent_node.parent
     print('Number of steps: ', len(np.array(tree_node_states)))
-
 
     DYN.check_entire_traj(tree_node_states, tree_node_inputs)
 
@@ -176,7 +175,7 @@ def get_sampled_traj_and_ctrls(pathNodesList):
     state_trajectory = []
     for k, node in enumerate(pathNodesList):
         point = [node.means[-1, 0, :][0], node.means[-1, 1, :][0], node.means[-1, 2, :][0]]
-        ctrls = node.inputCommands
+        ctrls = node.input_commands
         if k == 0:
             start_state.append(point)
             state_trajectory.append(point)

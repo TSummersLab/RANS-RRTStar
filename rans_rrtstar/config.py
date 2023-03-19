@@ -37,7 +37,7 @@ SAVEPATH = os.path.join(CONFIGPATH, 'saved_data', 'Example')  # path to save dat
 STYLEPATH = os.path.join(CONFIGPATH, '../utility', 'conlab.mplstyle')
 
 # RRT Parameters
-NUMSAMPLES = 50  # 1200  # total number of samples
+NUMSAMPLES = 20  # 1200  # total number of samples
 STEER_TIME = 30  # Maximum Steering Time Horizon
 ENVCONSTANT = 1.1  # Environment Constant for computing search radius
 DT = 0.2  # timestep between controls
@@ -124,7 +124,7 @@ CROSSCOR = np.diag([0., 0., 0.])  # Cross Correlation between the two noises (no
 
 # DR Risk bounds
 BETA = 0.1  # desired risk bound for entire plan failure
-TMAX = 1000 # maximum number of trajectory points in the RRT* plan (not just RRT* node, but also the intermediate trajectory points)
+TMAX = 1000  # maximum number of trajectory points in the RRT* plan (not just RRT* node, but also the intermediate trajectory points)
 num_obs = len(OBSTACLELIST)
 num_constraints = 4*(num_obs + 1) # total number of constraints for rectangular environment and rectangular obstacles
 alfa_stage = BETA/TMAX  # stage risk bound
